@@ -24,3 +24,18 @@ def get_weights(model):
 
         w = tf.convert_to_tensor(w)
         return w
+
+def get_sizes(layer_sizes):
+    sizes_w = []
+    sizes_b = []
+    for i, width in enumerate(layer_sizes):
+        if i != 1:
+            sizes_w.append(int(width * layer_sizes[1]))
+            sizes_b.append(int(width if i != 0 else layer_sizes[1]))
+    return sizes_w, sizes_b
+
+
+def MSE(pred, actual, weights = None):
+    if weights = None:
+        return tf.reduce_mean(tf.square(tf.math.subtract(pred,actual)))
+    return tf.reduce_mean(tf.square(self.weights*tf.math.subtract(pred,actual)))
