@@ -5,43 +5,63 @@ import networks
 import plotting
 
 
-class CollocationModel:
+class CollocationModel1D:
     def __init__(self):
         self.layer_sizes = None #[2, 128, 128, 128, 128, 1]
         self.sizes_w = None
         self.sizes_b = None
         self.optimizer_NN = None
+        self.u_model = None
+        self.periodicBC = False
+        self.x_f_batch = None
+        self.t_f_batch = None
+        self.x0 = None
+        self.t0 = None
+        self.u0 = None
+        self.x_lb = None
+        self.t_lb = None
+        self.x_ub = None
+        self.t_ub = None
+        self.u_lb = None
+        self.u_ub = None
+        self.f_model = None
+        self.u_x_model = None
 
 
     def initialize(self, layer_sizes):
-        u_model = neural_net(layer_sizes)
+        self.u_model = neural_net(layer_sizes)
         print("Network Architecture:")
         u_model.summary()
         self.sizes_w, self.sizes_b = get_sizes(layer_sizes)
 
 
-    def loss(self, f_model):
 
+    def loss(self, self.f_model, self.periodicBC = False):
+        u = self.
         f_u_pred = f_model(self.x_f_batch, self.t_f_batch)
         u0_pred = u_model(tf.concat([self.x0, self.t0],1))
 
-        u_lb_pred, u_x_lb_pred = u_x_model(self.x_lb, self.t_lb)
-        u_ub_pred, u_x_ub_pred = u_x_model(self.x_ub, self.t_ub)
+        if self.periodicBC:
+            u_lb_pred, u_x_lb_pred = u_x_model(self.x_lb, self.t_lb)
+            u_ub_pred, u_x_ub_pred = u_x_model(self.x_ub, self.t_ub)
+            mse_b_u = MSE(u_lb_pred,u_ub_pred) + MSE(u_x_lb_pred, u_x_ub_pred)
+        else:
+            u_lb_pred = u_model(tf.concat([self.x_lb, self.t_lb],1))
+            u_ub_pred = u_model(tf.concat([self.x_ub, self.t_ub],1))
+            mse_b_u = MSE(u_lb_pred, self.u_lb) + MSE(u_ub_pred, self.u_ub)
 
-        mse_0_u = tf.reduce_mean(tf.square(self.u_weights*(self.u0 - u0_pred)))
-        mse_b_u = tf.reduce_mean(tf.square(tf.math.subtract(u_lb_pred,u_ub_pred))) + \
-                tf.reduce_mean(tf.square(tf.math.subtract(u_x_lb_pred, u_x_ub_pred)))
-
-        mse_f_u = tf.reduce_mean(tf.square(self.col_weights*f_u_pred))
 
 
+        mse_0_u = MSE(self.u0, u0_pred, self.u_weights)
+
+
+        mse_f_u = MSE(f_u_pred, tf.constant(0.0, dtype = tf.float32), self.col_weights)
 
         return  mse_0_u + mse_b_u + mse_f_u , mse_0_u, mse_b_u, mse_f_u
 
     #define the physics-based residual, we want this to be 0
     @tf.function
-    def f_model(x,t):
-        u = u_model(tf.concat([x, t],1))
+    def f_model(u, x, t):
         u_x = tf.gradients(u, x)
         u_xx = tf.gradients(u_x, x)
         u_t = tf.gradients(u,t)
@@ -54,7 +74,6 @@ class CollocationModel:
     def u_x_model(x, t):
         u = u_model(tf.concat([x, t],1))
         u_x = tf.gradients(u, x)
-
         return u, u_x
 
     @tf.function
