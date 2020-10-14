@@ -42,3 +42,12 @@ def MSE(pred, actual, weights = None):
 
 def constant(val, dtype = tf.float32):
     return tf.constant(val, dtype= dtype)
+
+def LatinHypercubeSample(N_f, bounds):
+    sampling = LHS(xlimits=bounds)
+    return sampling(N_f)
+
+def _get_tf_model(model):
+    @tf.function
+    model
+    return model

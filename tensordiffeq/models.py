@@ -13,26 +13,30 @@ class CollocationModel1D:
         self.optimizer_NN = None
         self.u_model = None
         self.periodicBC = False
-        self.x_f_batch = None
-        self.t_f_batch = None
-        self.x0 = None
-        self.t0 = None
+        self.X_f_batch = None
+        self.X0 = None
         self.u0 = None
-        self.x_lb = None
-        self.t_lb = None
-        self.x_ub = None
-        self.t_ub = None
-        self.u_lb = None
-        self.u_ub = None
+        self.X_lb = None
+        self.X_ub = None
         self.f_model = None
         self.u_x_model = None
 
 
-    def compile(self, layer_sizes):
+    def compile(self, layer_sizes, f, X0, X_ub, X_lb, isPeriodic = False, u_x_model = None):
         self.u_model = neural_net(layer_sizes)
         print("Network Architecture:")
         u_model.summary()
         self.sizes_w, self.sizes_b = get_sizes(layer_sizes)
+        self.X0 = X0
+        self.X_lb = X_lb
+        self.X_ub = X_ub
+        self.f_model = _get_tf_model(f)
+        if self.isPeriodic = True:
+            if !u_x_model:
+                print("Periodic BC is listed but no u_x model is defined!")
+            else:
+                self.u_x_model = _get_tf_model(u_x_model)
+
 
 
 
