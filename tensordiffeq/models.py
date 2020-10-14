@@ -1,8 +1,8 @@
 import tensorflow as tf
 import keras
-import utils
-import networks
-import plotting
+from . import utils
+from . import networks
+from . import plotting
 
 
 class CollocationModel1D:
@@ -28,7 +28,7 @@ class CollocationModel1D:
         self.u_x_model = None
 
 
-    def initialize(self, layer_sizes):
+    def compile(self, layer_sizes):
         self.u_model = neural_net(layer_sizes)
         print("Network Architecture:")
         u_model.summary()
@@ -36,14 +36,14 @@ class CollocationModel1D:
 
 
 
-    def loss(self, self.f_model, self.periodicBC = False):
-        u = self.
-        f_u_pred = f_model(self.x_f_batch, self.t_f_batch)
+    def loss(self):
+        u = self.u_model(tf.concat([x,t], 1))
+        f_u_pred = self.f_model(self.x_f_batch, self.t_f_batch)
         u0_pred = u_model(tf.concat([self.x0, self.t0],1))
 
         if self.periodicBC:
-            u_lb_pred, u_x_lb_pred = u_x_model(self.x_lb, self.t_lb)
-            u_ub_pred, u_x_ub_pred = u_x_model(self.x_ub, self.t_ub)
+            u_lb_pred, u_x_lb_pred = self.u_x_model(self.x_lb, self.t_lb)
+            u_ub_pred, u_x_ub_pred = self.u_x_model(self.x_ub, self.t_ub)
             mse_b_u = MSE(u_lb_pred,u_ub_pred) + MSE(u_x_lb_pred, u_x_ub_pred)
         else:
             u_lb_pred = u_model(tf.concat([self.x_lb, self.t_lb],1))
@@ -55,7 +55,7 @@ class CollocationModel1D:
         mse_0_u = MSE(self.u0, u0_pred, self.u_weights)
 
 
-        mse_f_u = MSE(f_u_pred, tf.constant(0.0, dtype = tf.float32), self.col_weights)
+        mse_f_u = MSE(f_u_pred, constant(0.0), self.col_weights)
 
         return  mse_0_u + mse_b_u + mse_f_u , mse_0_u, mse_b_u, mse_f_u
 
