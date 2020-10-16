@@ -48,6 +48,6 @@ def LatinHypercubeSample(N_f, bounds):
     return sampling(N_f)
 
 def _get_tf_model(model):
-    @tf.function
-    model
-    return model
+    #tf.function
+    #model
+    return tf.function(model)

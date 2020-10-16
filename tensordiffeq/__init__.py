@@ -4,7 +4,7 @@ from . import models
 from . import networks
 from . import plotting
 from . import utils
-from .models import model
+from .models import CollocationModel1D
 
 __all__ = [
     "models",

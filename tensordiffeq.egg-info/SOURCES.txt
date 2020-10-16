@@ -1,0 +1,11 @@
+README.md
+setup.py
+tensordiffeq/__init__.py
+tensordiffeq/models.py
+tensordiffeq/networks.py
+tensordiffeq/plotting.py
+tensordiffeq/utils.py
+tensordiffeq.egg-info/PKG-INFO
+tensordiffeq.egg-info/SOURCES.txt
+tensordiffeq.egg-info/dependency_links.txt
+tensordiffeq.egg-info/top_level.txt
