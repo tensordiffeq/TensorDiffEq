@@ -5,6 +5,7 @@ from . import networks
 from . import plotting
 from . import utils
 from .models import CollocationModel1D
+from .utils import constant, LatinHypercubeSample, tensor
 
 __all__ = [
     "models",

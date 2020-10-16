@@ -51,3 +51,6 @@ def _get_tf_model(model):
     #tf.function
     #model
     return tf.function(model)
+
+def tensor(x):
+    return tf.convert_to_tensor(x, dtype=tf.float32)

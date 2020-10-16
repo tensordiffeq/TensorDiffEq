@@ -6,12 +6,12 @@ with open("README.md", "r") as fh:
 setuptools.setup(
     name="tensordiffeq", # Replace with your own username
     version="0.0.1",
-    author="Example Author",
-    author_email="author@example.com",
-    description="A small example package",
+    author="Levi McClenny",
+    author_email="levimcclenny@tamu.edu",
+    description="Distributed PDE Solver in Tensorflow",
     long_description=long_description,
     long_description_content_type="text/markdown",
-    url="https://github.com/pypa/sampleproject",
+    url="https://github.com/levimcclenny/tensordiffeq",
     packages=setuptools.find_packages(),
     classifiers=[
         "Programming Language :: Python :: 3",
