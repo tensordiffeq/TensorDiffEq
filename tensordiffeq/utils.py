@@ -1,5 +1,6 @@
 
 import tensorflow as tf
+from smt.sampling_methods import LHS
 
 def set_weights(self, model, w, sizes_w, sizes_b):
         for i, layer in enumerate(model.layers[0:]):
@@ -47,9 +48,7 @@ def LatinHypercubeSample(N_f, bounds):
     sampling = LHS(xlimits=bounds)
     return sampling(N_f)
 
-def _get_tf_model(model):
-    #tf.function
-    #model
+def get_tf_model(model):
     return tf.function(model)
 
 def tensor(x):

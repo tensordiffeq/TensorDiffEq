@@ -1,10 +1,9 @@
 import tensorflow as tf
 import keras
 import numpy as np
-from . import utils
-from . import networks
-from . import plotting
-
+from .utils import *
+from .networks import *
+from .plotting import *
 
 class CollocationModel1D:
     def __init__(self):
@@ -14,72 +13,80 @@ class CollocationModel1D:
         self.optimizer_NN = None
         self.u_model = None
         self.periodicBC = False
-        self.X_f_batch = None
+        self.X_f = None
         self.X0 = None
         self.u0 = None
         self.X_lb = None
         self.X_ub = None
         self.f_model = None
         self.u_x_model = None
+        self.col_weights = None
+        self.u_weights = None
 
 
-    def compile(self, layer_sizes, f, X0, X_ub, X_lb, isPeriodic = False, u_x_model = None):
+    def compile(self, layer_sizes, f, X_f, X0, X_ub, X_lb, isPeriodic = False, u_x_model = None, isAdaptive = False, col_weights = None, u_weights = None):
         self.u_model = neural_net(layer_sizes)
         print("Network Architecture:")
-        u_model.summary()
+        self.u_model.summary()
         self.sizes_w, self.sizes_b = get_sizes(layer_sizes)
         self.X0 = X0
         self.X_lb = X_lb
         self.X_ub = X_ub
-        self.f_model = _get_tf_model(f)
-        if self.isPeriodic == True:
+        self.X_f = X_f
+        self.f_model = get_tf_model(f)
+        if isPeriodic:
+            self.periodicBC = True
             if not self.u_x_model:
                 print("Periodic BC is listed but no u_x model is defined!")
             else:
-                self.u_x_model = _get_tf_model(u_x_model)
-
-
+                self.u_x_model = get_tf_model(u_x_model)
+        if isAdaptive:
+            if not col_weights or u_weights:
+                print("Adaptive weights selected but no inputs were specified!")
+            else:
+                self.col_weights = col_weights
+                self.u_weights = u_weights
 
 
     def loss(self):
-        u = self.u_model(tf.concat([x,t], 1))
-        f_u_pred = self.f_model(self.x_f_batch, self.t_f_batch)
-        u0_pred = u_model(tf.concat([self.x0, self.t0],1))
+        f_u_pred = self.f_model(X_f)
+        u0_pred = u_model(self.X0)
 
         if self.periodicBC:
-            u_lb_pred, u_x_lb_pred = self.u_x_model(self.x_lb, self.t_lb)
-            u_ub_pred, u_x_ub_pred = self.u_x_model(self.x_ub, self.t_ub)
+            u_lb_pred, u_x_lb_pred = self.u_x_model(self.X_lb)
+            u_ub_pred, u_x_ub_pred = self.u_x_model(self.X_ub)
             mse_b_u = MSE(u_lb_pred,u_ub_pred) + MSE(u_x_lb_pred, u_x_ub_pred)
         else:
-            u_lb_pred = u_model(tf.concat([self.x_lb, self.t_lb],1))
-            u_ub_pred = u_model(tf.concat([self.x_ub, self.t_ub],1))
+            u_lb_pred = u_model(self.X_lb)
+            u_ub_pred = u_model(self.X_ub)
             mse_b_u = MSE(u_lb_pred, self.u_lb) + MSE(u_ub_pred, self.u_ub)
 
-
-
         mse_0_u = MSE(self.u0, u0_pred, self.u_weights)
-
 
         mse_f_u = MSE(f_u_pred, constant(0.0), self.col_weights)
 
         return  mse_0_u + mse_b_u + mse_f_u , mse_0_u, mse_b_u, mse_f_u
 
     @tf.function
-    def grad(model, x_f_batch, t_f_batch, x0_batch, t0_batch, u0_batch, x_lb, t_lb, x_ub, t_ub, col_weights, u_weights):
+    def grad(self):
         with tf.GradientTape(persistent=True) as tape:
-            loss_value, mse_0, mse_b, mse_f = loss(x_f_batch, t_f_batch, x0_batch, t0_batch, u0_batch, x_lb, t_lb, x_ub, t_ub, col_weights, u_weights)
-            grads = tape.gradient(loss_value, u_model.trainable_variables)
-            grads_col = tape.gradient(loss_value, col_weights)
-            grads_u = tape.gradient(loss_value, u_weights)
+            loss_value, mse_0, mse_b, mse_f = loss()
+            grads = tape.gradient(loss_value, self.u_model.trainable_variables)
+            grads_col = tape.gradient(loss_value, self.col_weights)
+            grads_u = tape.gradient(loss_value, self.u_weights)
 
         return loss_value, mse_0, mse_b, mse_f, grads, grads_col, grads_u
 
 
-    def fit(x_f, t_f, x0, t0, u0, x_lb, t_lb, x_ub, t_ub, col_weights, u_weights, tf_iter, newton_iter):
+    def fit(self, tf_iter, newton_iter, batch_sz = None):
 
         #Can adjust batch size for collocation points, here we set it to N_f
-        batch_sz = N_f
-        n_batches =  N_f // batch_sz
+        if batch_sz is not None:
+            self.batch_sz = batch_sz
+        else:
+            self.batch_sz = len(self.X_f)
+
+        n_batches =  N_f // self.batch_sz
 
         start_time = time.time()
         #create optimizer s for the network weights, collocation point mask, and initial boundary mask
@@ -93,15 +100,9 @@ class CollocationModel1D:
         for epoch in range(tf_iter):
             for i in range(n_batches):
 
-                x0_batch = x0
-                t0_batch = t0
-                u0_batch = u0
+                X_f_batch = tf.slice(self.X_f, i*batch_sz, (i*batch_sz + batch_sz))
 
-                x_f_batch = x_f[i*batch_sz:(i*batch_sz + batch_sz),]
-                t_f_batch = t_f[i*batch_sz:(i*batch_sz + batch_sz),]
-
-                loss_value, mse_0, mse_b, mse_f, grads, grads_col, grads_u = grad(u_model, x_f_batch, t_f_batch, x0_batch, t0_batch, \
-                                                                          u0_batch, x_lb, t_lb, x_ub, t_ub, col_weights, u_weights)
+                loss_value, mse_0, mse_b, mse_f, grads, grads_col, grads_u = grad()
 
                 tf_optimizer.apply_gradients(zip(grads, u_model.trainable_variables))
                 tf_optimizer_weights.apply_gradients(zip([-grads_col, -grads_u], [col_weights, u_weights]))
@@ -115,7 +116,7 @@ class CollocationModel1D:
         #l-bfgs-b optimization
         print("Starting L-BFGS training")
 
-        loss_and_flat_grad = get_loss_and_flat_grad(x_f_batch, t_f_batch, x0_batch, t0_batch, u0_batch, x_lb, t_lb, x_ub, t_ub, col_weights, u_weights)
+        loss_and_flat_grad = get_loss_and_flat_grad()
 
         lbfgs(loss_and_flat_grad,
           get_weights(u_model),
@@ -123,12 +124,12 @@ class CollocationModel1D:
 
 
     #L-BFGS implementation from https://github.com/pierremtb/PINNs-TF2.0
-    def get_loss_and_flat_grad(x_f_batch, t_f_batch, x0_batch, t0_batch, u0_batch, x_lb, t_lb, x_ub, t_ub, col_weights, u_weights):
+    def get_loss_and_flat_grad():
         def loss_and_flat_grad(w):
             with tf.GradientTape() as tape:
-                set_weights(u_model, w, sizes_w, sizes_b)
-                loss_value, _, _, _ = loss(x_f_batch, t_f_batch, x0_batch, t0_batch, u0_batch, x_lb, t_lb, x_ub, t_ub, col_weights, u_weights)
-            grad = tape.gradient(loss_value, u_model.trainable_variables)
+                set_weights(self.u_model, w, self.sizes_w, self.sizes_b)
+                loss_value, _, _, _ = loss()
+            grad = tape.gradient(loss_value, self.u_model.trainable_variables)
             grad_flat = []
             for g in grad:
                 grad_flat.append(tf.reshape(g, [-1]))

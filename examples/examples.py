@@ -2,11 +2,10 @@ from __future__ import absolute_import
 from __future__ import division
 from __future__ import print_function
 
-from smt.sampling_methods import LHS
 
 import numpy as np
 import tensorflow as tf
-import scipy
+import scipy.io
 
 import tensordiffeq as tdq
 from tensordiffeq.models import CollocationModel1D
@@ -27,10 +26,8 @@ def u_x_model(u, x, t):
     return u, u_x
 
 
-layer_sizes = [2, 128, 128, 128, 128, 1]
-model = CollocationModel1D()
-model.compile(layer_sizes, f_u_model, X0, X_ub, X_lb, isPeriodic=True, u_x_model=u_x_model)
-tdq.constant
+
+
 
 N0 = 200
 N_b = 100
@@ -50,15 +47,15 @@ Exact_u = np.real(Exact)
 
 #grab training points from domain
 idx_x = np.random.choice(x.shape[0], N0, replace=False)
-
+x0 = x[idx_x,:]
 u0 = tf.cast(Exact_u[idx_x,0:1], dtype = tf.float32)
 
 idx_t = np.random.choice(t.shape[0], N_b, replace=False)
 tb = t[idx_t,:]
 
 # Grab collocation points using latin hpyercube sampling
-
-X_f = LatinHypercubeSample(N_f, xlimits) #x_f, t_f
+xlimits = np.array([[-1.0, 1.0], [0.0, 1.0]])
+X_f = tdq.utils.LatinHypercubeSample(N_f, xlimits) #x_f, t_f
 
 IVs = x[idx_x,:]
 
@@ -69,15 +66,9 @@ initial = np.concatenate((x0, 0*x0), 1)
 lower = np.concatenate((0*tb + lb[0], tb), 1)
 upper = np.concatenate((0*tb + ub[0], tb), 1)
 
-X0 = tdq.tensor(initial) # (x0, 0)
-X_lb = tdq.tensor(lower) # (lb[0], tb)
-X_ub =  tdq.tensor(upper) # (ub[0], tb)
-
-model.compile()
-
-
-model.compile(layer_sizes)
-
+X0 = tdq.utils.tensor(initial) # (x0, 0)
+X_lb = tdq.utils.tensor(lower) # (lb[0], tb)
+X_ub =  tdq.utils.tensor(upper) # (ub[0], tb)
 
 lb = np.array([-1.0])
 ub = np.array([1.0])
@@ -110,8 +101,6 @@ tb = t[idx_t,:]
 
 # Grab collocation points using latin hpyercube sampling
 
-X_f = lb + (ub-lb)*lhs(2, N_f)
-
 x_f = tf.convert_to_tensor(X_f[:,0:1], dtype=tf.float32)
 t_f = tf.convert_to_tensor(np.abs(X_f[:,1:2]), dtype=tf.float32)
 
@@ -120,18 +109,24 @@ X0 = np.concatenate((x0, 0*x0), 1) # (x0, 0)
 X_lb = np.concatenate((0*tb + lb[0], tb), 1) # (lb[0], tb)
 X_ub = np.concatenate((0*tb + ub[0], tb), 1) # (ub[0], tb)
 
-x0 = tf.cast(X0[:,0:1], dtype = tf.float32)
-t0 = tf.cast(X0[:,1:2], dtype = tf.float32)
+# x0 = tf.cast(X0[:,0:1], dtype = tf.float32)
+# t0 = tf.cast(X0[:,1:2], dtype = tf.float32)
+#
+# x_lb = tf.convert_to_tensor(X_lb[:,0:1], dtype=tf.float32)
+# t_lb = tf.convert_to_tensor(X_lb[:,1:2], dtype=tf.float32)
+#
+# x_ub = tf.convert_to_tensor(X_ub[:,0:1], dtype=tf.float32)
+# t_ub = tf.convert_to_tensor(X_ub[:,1:2], dtype=tf.float32)
 
-x_lb = tf.convert_to_tensor(X_lb[:,0:1], dtype=tf.float32)
-t_lb = tf.convert_to_tensor(X_lb[:,1:2], dtype=tf.float32)
+layer_sizes = [2, 128, 128, 128, 128, 1]
+model = CollocationModel1D()
+model.compile(layer_sizes, f_model, X_f, X0, X_ub, X_lb, isPeriodic=True, u_x_model=u_x_model)
 
-x_ub = tf.convert_to_tensor(X_ub[:,0:1], dtype=tf.float32)
-t_ub = tf.convert_to_tensor(X_ub[:,1:2], dtype=tf.float32)
+
 
 
 #train loop
-fit(x_f, t_f, x0, t0, u0, x_lb, t_lb, x_ub, t_ub, col_weights, u_weights, tf_iter = 100, newton_iter = 100)
+model.fit(tf_iter = 100, newton_iter = 100)
 
 
 
