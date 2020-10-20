@@ -39,7 +39,7 @@ def get_sizes(layer_sizes):
 def MSE(pred, actual, weights = None):
     if weights == None:
         return tf.reduce_mean(tf.square(tf.math.subtract(pred,actual)))
-    return tf.reduce_mean(tf.square(self.weights*tf.math.subtract(pred,actual)))
+    return tf.reduce_mean(tf.square(weights*tf.math.subtract(pred,actual)))
 
 def constant(val, dtype = tf.float32):
     return tf.constant(val, dtype= dtype)

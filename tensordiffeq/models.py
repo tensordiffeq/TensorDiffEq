@@ -38,12 +38,13 @@ class CollocationModel1D:
         #         raise Exception("Periodic BC is listed but no u_x model is defined!")
         #     #else:
         #         #self.u_x_model = get_tf_model(u_x_model)
-        if isAdaptive:
-            if not col_weights or u_weights:
-                print("Adaptive weights selected but no inputs were specified!")
-            else:
-                self.col_weights = col_weights
-                self.u_weights = u_weights
+
+        self.col_weights = col_weights
+        self.u_weights = u_weights
+        # if isAdaptive:
+        #     if self.col_weights == None and self.u_weights == None:
+        #         raise Exception("Adaptive weights selected but no inputs were specified!")
+
 
     #@tf.function
     def f_model(self, x, t):
@@ -73,10 +74,11 @@ class CollocationModel1D:
         u_lb_pred, u_x_lb_pred = self.u_x_model(self.x_lb, self.t_lb)
         u_ub_pred, u_x_ub_pred = self.u_x_model(self.x_ub, self.t_ub)
         #print(u_x_lb_pred)
-        mse_b_u = MSE(u_lb_pred,u_ub_pred) + MSE(u_x_lb_pred, u_x_ub_pred)
-        mse_0_u = MSE(self.u0, u0_pred, self.u_weights)
+        mse_b_u = tf.reduce_mean(tf.square(tf.math.subtract(u_lb_pred,u_ub_pred))) + \
+            tf.reduce_mean(tf.square(tf.math.subtract(u_x_lb_pred, u_x_ub_pred)))
+        mse_0_u = tf.reduce_mean(tf.square(self.u_weights*(self.u0 - u0_pred)))
 
-        mse_f_u = MSE(f_u_pred, constant(0.0), self.col_weights)
+        mse_f_u = tf.reduce_mean(self.col_weights**2*tf.square(f_u_pred))
 
         return  mse_0_u + mse_b_u + mse_f_u , mse_0_u, mse_b_u, mse_f_u
 
@@ -118,8 +120,8 @@ class CollocationModel1D:
 
                 loss_value, mse_0, mse_b, mse_f, grads, grads_col, grads_u = self.grad()
 
-                tf_optimizer.apply_gradients(zip(grads, u_model.trainable_variables))
-                tf_optimizer_weights.apply_gradients(zip([-grads_col, -grads_u], [col_weights, u_weights]))
+                tf_optimizer.apply_gradients(zip(grads, self.u_model.trainable_variables))
+                tf_optimizer_weights.apply_gradients(zip([-grads_col, -grads_u], [self.col_weights, self.u_weights]))
 
             if epoch % 10 == 0:
                 elapsed = time.time() - start_time
