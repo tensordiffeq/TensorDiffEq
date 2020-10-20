@@ -15,8 +15,8 @@ def f_model(u, x, t):
     u_x = tf.gradients(u, x)
     u_xx = tf.gradients(u_x, x)
     u_t = tf.gradients(u,t)
-    c1 = tdq.constant(.0001)
-    c2 = tdq.constant(5.0)
+    c1 = tdq.utils.constant(.0001)
+    c2 = tdq.utils.constant(5.0)
     f_u = u_t - c1*u_xx + c2*u*u*u - c2*u
     return f_u
 
@@ -109,18 +109,18 @@ X0 = np.concatenate((x0, 0*x0), 1) # (x0, 0)
 X_lb = np.concatenate((0*tb + lb[0], tb), 1) # (lb[0], tb)
 X_ub = np.concatenate((0*tb + ub[0], tb), 1) # (ub[0], tb)
 
-# x0 = tf.cast(X0[:,0:1], dtype = tf.float32)
-# t0 = tf.cast(X0[:,1:2], dtype = tf.float32)
-#
-# x_lb = tf.convert_to_tensor(X_lb[:,0:1], dtype=tf.float32)
-# t_lb = tf.convert_to_tensor(X_lb[:,1:2], dtype=tf.float32)
-#
-# x_ub = tf.convert_to_tensor(X_ub[:,0:1], dtype=tf.float32)
-# t_ub = tf.convert_to_tensor(X_ub[:,1:2], dtype=tf.float32)
+x0 = tf.cast(X0[:,0:1], dtype = tf.float32)
+t0 = tf.cast(X0[:,1:2], dtype = tf.float32)
+
+x_lb = tf.convert_to_tensor(X_lb[:,0:1], dtype=tf.float32)
+t_lb = tf.convert_to_tensor(X_lb[:,1:2], dtype=tf.float32)
+
+x_ub = tf.convert_to_tensor(X_ub[:,0:1], dtype=tf.float32)
+t_ub = tf.convert_to_tensor(X_ub[:,1:2], dtype=tf.float32)
 
 layer_sizes = [2, 128, 128, 128, 128, 1]
 model = CollocationModel1D()
-model.compile(layer_sizes, f_model, X_f, X0, X_ub, X_lb, isPeriodic=True, u_x_model=u_x_model)
+model.compile(layer_sizes, f_model, x_f, t_f, x0, t0, u0, x_lb, t_lb, x_ub, t_ub, isPeriodic=True, isAdaptive=True, u_x_model=u_x_model, col_weights=col_weights, u_weights=u_weights)
 
 
 
@@ -158,6 +158,16 @@ FU_pred = griddata(X_star, f_u_pred.flatten(), (X, T), method='cubic')
 X0 = np.concatenate((x0, 0*x0), 1) # (x0, 0)
 X_lb = np.concatenate((0*tb + lb[0], tb), 1) # (lb[0], tb)
 X_ub = np.concatenate((0*tb + ub[0], tb), 1) # (ub[0], tb)
+
+x0 = tf.cast(X0[:,0:1], dtype = tf.float32)
+t0 = tf.cast(X0[:,1:2], dtype = tf.float32)
+
+x_lb = tf.convert_to_tensor(X_lb[:,0:1], dtype=tf.float32)
+t_lb = tf.convert_to_tensor(X_lb[:,1:2], dtype=tf.float32)
+
+x_ub = tf.convert_to_tensor(X_ub[:,0:1], dtype=tf.float32)
+t_ub = tf.convert_to_tensor(X_ub[:,1:2], dtype=tf.float32)
+
 X_u_train = np.vstack([X0, X_lb, X_ub])
 
 fig, ax = newfig(1.3, 1.0)

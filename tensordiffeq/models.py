@@ -1,45 +1,43 @@
 import tensorflow as tf
 import keras
 import numpy as np
+import time
 from .utils import *
 from .networks import *
 from .plotting import *
 
 class CollocationModel1D:
     def __init__(self):
-        self.layer_sizes = None #[2, 128, 128, 128, 128, 1]
         self.sizes_w = None
         self.sizes_b = None
         self.optimizer_NN = None
-        self.u_model = None
-        self.periodicBC = False
-        self.X_f = None
-        self.X0 = None
-        self.u0 = None
-        self.X_lb = None
-        self.X_ub = None
-        self.f_model = None
-        self.u_x_model = None
+        #self.f_model = None
+        #self.u_x_model = None
         self.col_weights = None
         self.u_weights = None
 
 
-    def compile(self, layer_sizes, f, X_f, X0, X_ub, X_lb, isPeriodic = False, u_x_model = None, isAdaptive = False, col_weights = None, u_weights = None):
+    def compile(self, layer_sizes, f, x_f, t_f, x0, t0, u0, x_lb, t_lb, x_ub, t_ub, isPeriodic = False, u_x_model = None, isAdaptive = False, col_weights = None, u_weights = None):
         self.u_model = neural_net(layer_sizes)
         print("Network Architecture:")
         self.u_model.summary()
         self.sizes_w, self.sizes_b = get_sizes(layer_sizes)
-        self.X0 = X0
-        self.X_lb = X_lb
-        self.X_ub = X_ub
-        self.X_f = X_f
-        self.f_model = get_tf_model(f)
-        if isPeriodic:
-            self.periodicBC = True
-            if not self.u_x_model:
-                print("Periodic BC is listed but no u_x model is defined!")
-            else:
-                self.u_x_model = get_tf_model(u_x_model)
+        self.x0 = x0
+        self.t0 = t0
+        self.u0 = u0
+        self.x_lb = x_lb
+        self.t_lb = t_lb
+        self.x_ub = x_ub
+        self.t_ub = t_ub
+        self.x_f = x_f
+        self.t_f = t_f
+        # #self.f_model = get_tf_model(self.f_model)
+        # if isPeriodic:
+        self.periodicBC = True
+        #     if not u_x_model:
+        #         raise Exception("Periodic BC is listed but no u_x model is defined!")
+        #     #else:
+        #         #self.u_x_model = get_tf_model(u_x_model)
         if isAdaptive:
             if not col_weights or u_weights:
                 print("Adaptive weights selected but no inputs were specified!")
@@ -47,20 +45,35 @@ class CollocationModel1D:
                 self.col_weights = col_weights
                 self.u_weights = u_weights
 
+    #@tf.function
+    def f_model(self, x, t):
+        u = self.u_model(tf.concat([self.x_f, self.t_f],1))
+        u_x = tf.gradients(u, x)
+        u_xx = tf.gradients(u_x, x)
+        u_t = tf.gradients(u,t)
+        c1 = constant(.0001)
+        c2 = constant(5.0)
+        f_u = u_t - c1*u_xx + c2*u*u*u - c2*u
+        return f_u
+
+    #@tf.function
+    def u_x_model(self, x, t):
+        u = self.u_model(tf.concat([x, t],1))
+        print(x)
+        u_x = tf.gradients(u, x)
+        print(u_x)
+        return u, u_x
+
 
     def loss(self):
-        f_u_pred = self.f_model(X_f)
-        u0_pred = u_model(self.X0)
+        u = self.u_model(tf.concat([self.x_f, self.t_f],1))
+        f_u_pred = self.f_model(self.x_f, self.t_f)
+        u0_pred = self.u_model(tf.concat([self.x0, self.t0],1))
 
-        if self.periodicBC:
-            u_lb_pred, u_x_lb_pred = self.u_x_model(self.X_lb)
-            u_ub_pred, u_x_ub_pred = self.u_x_model(self.X_ub)
-            mse_b_u = MSE(u_lb_pred,u_ub_pred) + MSE(u_x_lb_pred, u_x_ub_pred)
-        else:
-            u_lb_pred = u_model(self.X_lb)
-            u_ub_pred = u_model(self.X_ub)
-            mse_b_u = MSE(u_lb_pred, self.u_lb) + MSE(u_ub_pred, self.u_ub)
-
+        u_lb_pred, u_x_lb_pred = self.u_x_model(self.x_lb, self.t_lb)
+        u_ub_pred, u_x_ub_pred = self.u_x_model(self.x_ub, self.t_ub)
+        #print(u_x_lb_pred)
+        mse_b_u = MSE(u_lb_pred,u_ub_pred) + MSE(u_x_lb_pred, u_x_ub_pred)
         mse_0_u = MSE(self.u0, u0_pred, self.u_weights)
 
         mse_f_u = MSE(f_u_pred, constant(0.0), self.col_weights)
@@ -70,7 +83,7 @@ class CollocationModel1D:
     @tf.function
     def grad(self):
         with tf.GradientTape(persistent=True) as tape:
-            loss_value, mse_0, mse_b, mse_f = loss()
+            loss_value, mse_0, mse_b, mse_f = self.loss()
             grads = tape.gradient(loss_value, self.u_model.trainable_variables)
             grads_col = tape.gradient(loss_value, self.col_weights)
             grads_u = tape.gradient(loss_value, self.u_weights)
@@ -84,8 +97,9 @@ class CollocationModel1D:
         if batch_sz is not None:
             self.batch_sz = batch_sz
         else:
-            self.batch_sz = len(self.X_f)
+            self.batch_sz = len(self.x_f)
 
+        N_f = len(self.x_f)
         n_batches =  N_f // self.batch_sz
 
         start_time = time.time()
@@ -100,9 +114,9 @@ class CollocationModel1D:
         for epoch in range(tf_iter):
             for i in range(n_batches):
 
-                X_f_batch = tf.slice(self.X_f, i*batch_sz, (i*batch_sz + batch_sz))
+                #X_f_batch = tf.slice(self.X_f, i*self.batch_sz, (i*self.batch_sz + self.batch_sz))
 
-                loss_value, mse_0, mse_b, mse_f, grads, grads_col, grads_u = grad()
+                loss_value, mse_0, mse_b, mse_f, grads, grads_col, grads_u = self.grad()
 
                 tf_optimizer.apply_gradients(zip(grads, u_model.trainable_variables))
                 tf_optimizer_weights.apply_gradients(zip([-grads_col, -grads_u], [col_weights, u_weights]))
