@@ -46,9 +46,9 @@ class CollocationModel1D:
         #         raise Exception("Adaptive weights selected but no inputs were specified!")
 
 
-    #@tf.function
+    @tf.function
     def f_model(self, x, t):
-        u = self.u_model(tf.concat([self.x_f, self.t_f],1))
+        u = self.u_model(tf.concat([x, t],1))
         u_x = tf.gradients(u, x)
         u_xx = tf.gradients(u_x, x)
         u_t = tf.gradients(u,t)
@@ -57,7 +57,7 @@ class CollocationModel1D:
         f_u = u_t - c1*u_xx + c2*u*u*u - c2*u
         return f_u
 
-    #@tf.function
+    @tf.function
     def u_x_model(self, x, t):
         u = self.u_model(tf.concat([x, t],1))
         print(x)
@@ -132,19 +132,19 @@ class CollocationModel1D:
         #l-bfgs-b optimization
         print("Starting L-BFGS training")
 
-        loss_and_flat_grad = get_loss_and_flat_grad()
+        loss_and_flat_grad = self.get_loss_and_flat_grad()
 
         lbfgs(loss_and_flat_grad,
-          get_weights(u_model),
+          get_weights(self.u_model),
           Struct(), maxIter=newton_iter, learningRate=0.8)
 
 
     #L-BFGS implementation from https://github.com/pierremtb/PINNs-TF2.0
-    def get_loss_and_flat_grad():
+    def get_loss_and_flat_grad(self):
         def loss_and_flat_grad(w):
             with tf.GradientTape() as tape:
                 set_weights(self.u_model, w, self.sizes_w, self.sizes_b)
-                loss_value, _, _, _ = loss()
+                loss_value, _, _, _ = self.loss()
             grad = tape.gradient(loss_value, self.u_model.trainable_variables)
             grad_flat = []
             for g in grad:
