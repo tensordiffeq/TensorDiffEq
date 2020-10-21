@@ -10,8 +10,8 @@ import scipy.io
 import tensordiffeq as tdq
 from tensordiffeq.models import CollocationModel1D
 
-#@tf.function
-def f_model(u, x, t):
+def f_model(u_model, x, t):
+    u = u_model(tf.concat([x,t], 1))
     u_x = tf.gradients(u, x)
     u_xx = tf.gradients(u_x, x)
     u_t = tf.gradients(u,t)
@@ -20,8 +20,8 @@ def f_model(u, x, t):
     f_u = u_t - c1*u_xx + c2*u*u*u - c2*u
     return f_u
 
-#@tf.function
-def u_x_model(u, x, t):
+def u_x_model(u_model, x, t):
+    u = u_model(tf.concat([x,t], 1))
     u_x = tf.gradients(u, x)
     return u, u_x
 
@@ -126,7 +126,7 @@ model.compile(layer_sizes, f_model, x_f, t_f, x0, t0, u0, x_lb, t_lb, x_ub, t_ub
 
 
 #train loop
-model.fit(tf_iter = 10, newton_iter = 100)
+model.fit(tf_iter = 100, newton_iter = 100)
 
 
 
