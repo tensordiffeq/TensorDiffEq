@@ -11,7 +11,7 @@ import tensordiffeq as tdq
 from tensordiffeq.models import CollocationModel1D
 
 def f_model(u_model, x, t):
-    u = u_model(tf.concat([x,t], 1))
+    u = u_model(tf.concat([x,t],1))
     u_x = tf.gradients(u, x)
     u_xx = tf.gradients(u_x, x)
     u_t = tf.gradients(u,t)
@@ -120,7 +120,7 @@ t_ub = tf.convert_to_tensor(X_ub[:,1:2], dtype=tf.float32)
 
 layer_sizes = [2, 128, 128, 128, 128, 1]
 model = CollocationModel1D()
-model.compile(layer_sizes, f_model, x_f, t_f, x0, t0, u0, x_lb, t_lb, x_ub, t_ub, isPeriodic=True, isAdaptive=True, u_x_model=u_x_model, col_weights=col_weights, u_weights=u_weights)
+model.compile(layer_sizes, f_model, x_f, t_f, x0, t0, u0, x_lb, t_lb, x_ub, t_ub, isPeriodic=True, isAdaptive=False, u_x_model=u_x_model, col_weights=col_weights, u_weights=u_weights)
 
 
 
@@ -140,7 +140,8 @@ u_star = Exact_u.T.flatten()[:,None]
 lb = np.array([-1.0, 0.0])
 ub = np.array([1.0, 1])
 
-u_pred, f_u_pred = predict(X_star)
+u_pred, f_u_pred = model.predict(X_star)
+
 
 error_u = np.linalg.norm(u_star-u_pred,2)/np.linalg.norm(u_star,2)
 

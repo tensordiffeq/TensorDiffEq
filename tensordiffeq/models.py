@@ -32,27 +32,24 @@ class CollocationModel1D:
         self.x_f = x_f
         self.t_f = t_f
         self.f_model = get_tf_model(f_model)
-        self.u_x_model = get_tf_model(u_x_model)
-        # if isPeriodic:
-        self.periodicBC = True
-        #     if not u_x_model:
-        #         raise Exception("Periodic BC is listed but no u_x model is defined!")
-        #     #else:
-        #         #self.u_x_model = get_tf_model(u_x_model)
+        self.isAdaptive = False
+        #self.u_x_model = get_tf_model(u_x_model)
+        if isPeriodic:
+            self.periodicBC = True
+            if not u_x_model:
+                raise Exception("Periodic BC is listed but no u_x model is defined!")
+            else:
+                self.u_x_model = get_tf_model(u_x_model)
 
         self.col_weights = col_weights
         self.u_weights = u_weights
-        # if isAdaptive:
-        #     if self.col_weights == None and self.u_weights == None:
-        #         raise Exception("Adaptive weights selected but no inputs were specified!")
-
-    # @tf.function
-    # def u_x_model(self, x, t):
-    #     u = self.u_model(tf.concat([x, t],1))
-    #     print(x)
-    #     u_x = tf.gradients(u, x)
-    #     print(u_x)
-    #     return u, u_x
+        if isAdaptive:
+            self.isAdaptive = True
+            if self.col_weights is None and self.u_weights is  None:
+                raise Exception("Adaptive weights selected but no inputs were specified!")
+        if not isAdaptive:
+            if self.col_weights is not None and self.u_weights is not None:
+                raise Exception("Adaptive weights are turned off but weight vectors were provided. Set the weight vectors to \"none\" to continue")
 
 
     def loss(self):
@@ -61,7 +58,7 @@ class CollocationModel1D:
 
         u_lb_pred, u_x_lb_pred = self.u_x_model(self.u_model, self.x_lb, self.t_lb)
         u_ub_pred, u_x_ub_pred = self.u_x_model(self.u_model, self.x_ub, self.t_ub)
-        #print(u_x_lb_pred)
+
         mse_b_u = MSE(u_lb_pred,u_ub_pred) + MSE(u_x_lb_pred, u_x_ub_pred)
 
         mse_0_u = MSE(u0_pred, self.u0, self.u_weights)
@@ -71,15 +68,22 @@ class CollocationModel1D:
         return  mse_0_u + mse_b_u + mse_f_u , mse_0_u, mse_b_u, mse_f_u
 
     @tf.function
-    def grad(self):
+    def adaptgrad(self):
         with tf.GradientTape(persistent=True) as tape:
             loss_value, mse_0, mse_b, mse_f = self.loss()
             grads = tape.gradient(loss_value, self.u_model.trainable_variables)
             grads_col = tape.gradient(loss_value, self.col_weights)
             grads_u = tape.gradient(loss_value, self.u_weights)
-
+            del tape
         return loss_value, mse_0, mse_b, mse_f, grads, grads_col, grads_u
 
+    @tf.function
+    def grad(self):
+        with tf.GradientTape() as tape:
+            loss_value, mse_0, mse_b, mse_f = self.loss()
+            grads = tape.gradient(loss_value, self.u_model.trainable_variables)
+            del tape
+        return loss_value, mse_0, mse_b, mse_f, grads
 
     def fit(self, tf_iter, newton_iter, batch_sz = None):
 
@@ -93,23 +97,21 @@ class CollocationModel1D:
         n_batches =  N_f // self.batch_sz
 
         start_time = time.time()
-        #create optimizer s for the network weights, collocation point mask, and initial boundary mask
         tf_optimizer = tf.keras.optimizers.Adam(lr = 0.005, beta_1=.99)
         tf_optimizer_weights = tf.keras.optimizers.Adam(lr = 0.005, beta_1=.99)
-        tf_optimizer_u = tf.keras.optimizers.Adam(lr = 0.005, beta_1=.99)
+        #tf_optimizer_u = tf.keras.optimizers.Adam(lr = 0.005, beta_1=.99)
 
         print("starting Adam training")
 
-        # For mini-batch (if used)
         for epoch in range(tf_iter):
             for i in range(n_batches):
-
-                #X_f_batch = tf.slice(self.X_f, i*self.batch_sz, (i*self.batch_sz + self.batch_sz))
-
-                loss_value, mse_0, mse_b, mse_f, grads, grads_col, grads_u = self.grad()
-
-                tf_optimizer.apply_gradients(zip(grads, self.u_model.trainable_variables))
-                tf_optimizer_weights.apply_gradients(zip([-grads_col, -grads_u], [self.col_weights, self.u_weights]))
+                if self.isAdaptive:
+                    loss_value, mse_0, mse_b, mse_f, grads, grads_col, grads_u = self.adaptgrad()
+                    tf_optimizer.apply_gradients(zip(grads, self.u_model.trainable_variables))
+                    tf_optimizer_weights.apply_gradients(zip([-grads_col, -grads_u], [self.col_weights, self.u_weights]))
+                else:
+                    loss_value, mse_0, mse_b, mse_f, grads = self.grad()
+                    tf_optimizer.apply_gradients(zip(grads, self.u_model.trainable_variables))
 
             if epoch % 10 == 0:
                 elapsed = time.time() - start_time
@@ -144,12 +146,12 @@ class CollocationModel1D:
         return loss_and_flat_grad
 
 
-    def predict(X_star):
-        X_star = tf.convert_to_tensor(X_star, dtype=tf.float32)
-        u_star, _ = u_x_model(X_star[:,0:1],
+    def predict(self, X_star):
+        X_star = convertTensor(X_star)
+        u_star, _ = self.u_x_model(self.u_model, X_star[:,0:1],
                          X_star[:,1:2])
 
-        f_u_star = f_model(X_star[:,0:1],
+        f_u_star = self.f_model(self.u_model, X_star[:,0:1],
                      X_star[:,1:2])
 
         return u_star.numpy(), f_u_star.numpy()
