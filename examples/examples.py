@@ -6,6 +6,10 @@ from __future__ import print_function
 import numpy as np
 import tensorflow as tf
 import scipy.io
+from scipy.interpolate import griddata
+import matplotlib.gridspec as gridspec
+import matplotlib.pyplot as plt
+from mpl_toolkits.axes_grid1 import make_axes_locatable
 
 import tensordiffeq as tdq
 from tensordiffeq.models import CollocationModel1D
@@ -120,13 +124,13 @@ t_ub = tf.convert_to_tensor(X_ub[:,1:2], dtype=tf.float32)
 
 layer_sizes = [2, 128, 128, 128, 128, 1]
 model = CollocationModel1D()
-model.compile(layer_sizes, f_model, x_f, t_f, x0, t0, u0, x_lb, t_lb, x_ub, t_ub, isPeriodic=True, isAdaptive=False, u_x_model=u_x_model, col_weights=col_weights, u_weights=u_weights)
+model.compile(layer_sizes, f_model, x_f, t_f, x0, t0, u0, x_lb, t_lb, x_ub, t_ub, isPeriodic=True, isAdaptive=True, u_x_model=u_x_model, col_weights=col_weights, u_weights=u_weights)
 
 
 
 
 #train loop
-model.fit(tf_iter = 100, newton_iter = 100)
+model.fit(tf_iter = 10, newton_iter = 10)
 
 
 
@@ -171,7 +175,7 @@ t_ub = tf.convert_to_tensor(X_ub[:,1:2], dtype=tf.float32)
 
 X_u_train = np.vstack([X0, X_lb, X_ub])
 
-fig, ax = newfig(1.3, 1.0)
+fig, ax = tdq.plotting.newfig(1.3, 1.0)
 ax.axis('off')
 
 ####### Row 0: h(t,x) ##################
