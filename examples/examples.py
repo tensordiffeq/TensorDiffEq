@@ -93,8 +93,6 @@ x = data['x'].flatten()[:,None]
 Exact = data['uu']
 Exact_u = np.real(Exact)
 
-
-
 #grab training points from domain
 idx_x = np.random.choice(x.shape[0], N0, replace=False)
 x0 = x[idx_x,:]
@@ -104,7 +102,6 @@ idx_t = np.random.choice(t.shape[0], N_b, replace=False)
 tb = t[idx_t,:]
 
 # Grab collocation points using latin hpyercube sampling
-
 x_f = tf.convert_to_tensor(X_f[:,0:1], dtype=tf.float32)
 t_f = tf.convert_to_tensor(np.abs(X_f[:,1:2]), dtype=tf.float32)
 
@@ -127,15 +124,10 @@ model = CollocationModel1D()
 model.compile(layer_sizes, f_model, x_f, t_f, x0, t0, u0, x_lb, t_lb, x_ub, t_ub, isPeriodic=True, isAdaptive=True, u_x_model=u_x_model, col_weights=col_weights, u_weights=u_weights)
 
 
-
-
 #train loop
 model.fit(tf_iter = 10, newton_iter = 10)
 
-
-
 #generate meshgrid for forward pass of u_pred
-
 X, T = np.meshgrid(x,t)
 
 X_star = np.hstack((X.flatten()[:,None], T.flatten()[:,None]))
