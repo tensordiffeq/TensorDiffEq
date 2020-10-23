@@ -123,7 +123,6 @@ layer_sizes = [2, 128, 128, 128, 128, 1]
 model = CollocationModel1D()
 model.compile(layer_sizes, f_model, x_f, t_f, x0, t0, u0, x_lb, t_lb, x_ub, t_ub, isPeriodic=True, isAdaptive=True, u_x_model=u_x_model, col_weights=col_weights, u_weights=u_weights)
 
-
 #train loop
 model.fit(tf_iter = 10, newton_iter = 10)
 
@@ -133,11 +132,18 @@ X, T = np.meshgrid(x,t)
 X_star = np.hstack((X.flatten()[:,None], T.flatten()[:,None]))
 u_star = Exact_u.T.flatten()[:,None]
 
+u_pred, f_u_pred = model.predict(X_star)
+
 lb = np.array([-1.0, 0.0])
 ub = np.array([1.0, 1])
 
-u_pred, f_u_pred = model.predict(X_star)
+tdq.plotting.plot_solution_domain1D(model, [x, t],  ub = ub, lb = lb, Exact_u=Exact_u)
 
+tdq.helpers.find_L2_error(pred, actual)
+
+tdq.plotting.plot_weights(model)
+
+tdq.plotting.plot_residuals(model)
 
 error_u = np.linalg.norm(u_star-u_pred,2)/np.linalg.norm(u_star,2)
 
@@ -148,86 +154,68 @@ U_pred = griddata(X_star, u_pred.flatten(), (X, T), method='cubic')
 
 FU_pred = griddata(X_star, f_u_pred.flatten(), (X, T), method='cubic')
 
-######################################################################
-############################# Plotting ###############################
-######################################################################
-
-X0 = np.concatenate((x0, 0*x0), 1) # (x0, 0)
-X_lb = np.concatenate((0*tb + lb[0], tb), 1) # (lb[0], tb)
-X_ub = np.concatenate((0*tb + ub[0], tb), 1) # (ub[0], tb)
-
-x0 = tf.cast(X0[:,0:1], dtype = tf.float32)
-t0 = tf.cast(X0[:,1:2], dtype = tf.float32)
-
-x_lb = tf.convert_to_tensor(X_lb[:,0:1], dtype=tf.float32)
-t_lb = tf.convert_to_tensor(X_lb[:,1:2], dtype=tf.float32)
-
-x_ub = tf.convert_to_tensor(X_ub[:,0:1], dtype=tf.float32)
-t_ub = tf.convert_to_tensor(X_ub[:,1:2], dtype=tf.float32)
-
-X_u_train = np.vstack([X0, X_lb, X_ub])
-
-fig, ax = tdq.plotting.newfig(1.3, 1.0)
-ax.axis('off')
-
-####### Row 0: h(t,x) ##################
-gs0 = gridspec.GridSpec(1, 2)
-gs0.update(top=1-0.06, bottom=1-1/3, left=0.15, right=0.85, wspace=0)
-ax = plt.subplot(gs0[:, :])
-
-h = ax.imshow(U_pred.T, interpolation='nearest', cmap='YlGnBu',
-              extent=[lb[1], ub[1], lb[0], ub[0]],
-              origin='lower', aspect='auto')
-divider = make_axes_locatable(ax)
-cax = divider.append_axes("right", size="5%", pad=0.05)
-fig.colorbar(h, cax=cax)
-
-
-line = np.linspace(x.min(), x.max(), 2)[:,None]
-ax.plot(t[25]*np.ones((2,1)), line, 'k--', linewidth = 1)
-ax.plot(t[50]*np.ones((2,1)), line, 'k--', linewidth = 1)
-ax.plot(t[75]*np.ones((2,1)), line, 'k--', linewidth = 1)
-
-ax.set_xlabel('$t$')
-ax.set_ylabel('$x$')
-leg = ax.legend(frameon=False, loc = 'best')
-#    plt.setp(leg.get_texts(), color='w')
-ax.set_title('$u(t,x)$', fontsize = 10)
-
-####### Row 1: h(t,x) slices ##################
-gs1 = gridspec.GridSpec(1, 3)
-gs1.update(top=1-1/3, bottom=0, left=0.1, right=0.9, wspace=0.5)
-
-ax = plt.subplot(gs1[0, 0])
-ax.plot(x,Exact_u[:,25], 'b-', linewidth = 2, label = 'Exact')
-ax.plot(x,U_pred[25,:], 'r--', linewidth = 2, label = 'Prediction')
-ax.set_xlabel('$x$')
-ax.set_ylabel('$u(t,x)$')
-ax.set_title('$t = %.2f$' % (t[25]), fontsize = 10)
-ax.axis('square')
-ax.set_xlim([-1.1,1.1])
-ax.set_ylim([-1.1,1.1])
-
-ax = plt.subplot(gs1[0, 1])
-ax.plot(x,Exact_u[:,50], 'b-', linewidth = 2, label = 'Exact')
-ax.plot(x,U_pred[50,:], 'r--', linewidth = 2, label = 'Prediction')
-ax.set_xlabel('$x$')
-ax.set_ylabel('$u(t,x)$')
-ax.axis('square')
-ax.set_xlim([-1.1,1.1])
-ax.set_ylim([-1.1,1.1])
-ax.set_title('$t = %.2f$' % (t[50]), fontsize = 10)
-ax.legend(loc='upper center', bbox_to_anchor=(0.5, -0.3), ncol=5, frameon=False)
-
-ax = plt.subplot(gs1[0, 2])
-ax.plot(x,Exact_u[:,75], 'b-', linewidth = 2, label = 'Exact')
-ax.plot(x,U_pred[75,:], 'r--', linewidth = 2, label = 'Prediction')
-ax.set_xlabel('$x$')
-ax.set_ylabel('$u(t,x)$')
-ax.axis('square')
-ax.set_xlim([-1.1,1.1])
-ax.set_ylim([-1.1,1.1])
-ax.set_title('$t = %.2f$' % (t[75]), fontsize = 10)
+# fig, ax = tdq.plotting.newfig(1.3, 1.0)
+#
+# ax.axis('off')
+#
+# ####### Row 0: h(t,x) ##################
+# gs0 = gridspec.GridSpec(1, 2)
+# gs0.update(top=1-0.06, bottom=1-1/3, left=0.15, right=0.85, wspace=0)
+# ax = plt.subplot(gs0[:, :])
+#
+# h = ax.imshow(U_pred.T, interpolation='nearest', cmap='YlGnBu',
+#               extent=[lb[1], ub[1], lb[0], ub[0]],
+#               origin='lower', aspect='auto')
+# divider = make_axes_locatable(ax)
+# cax = divider.append_axes("right", size="5%", pad=0.05)
+# fig.colorbar(h, cax=cax)
+#
+#
+# line = np.linspace(x.min(), x.max(), 2)[:,None]
+# ax.plot(t[25]*np.ones((2,1)), line, 'k--', linewidth = 1)
+# ax.plot(t[50]*np.ones((2,1)), line, 'k--', linewidth = 1)
+# ax.plot(t[75]*np.ones((2,1)), line, 'k--', linewidth = 1)
+#
+# ax.set_xlabel('$t$')
+# ax.set_ylabel('$x$')
+# leg = ax.legend(frameon=False, loc = 'best')
+# #    plt.setp(leg.get_texts(), color='w')
+# ax.set_title('$u(t,x)$', fontsize = 10)
+#
+# ####### Row 1: h(t,x) slices ##################
+# gs1 = gridspec.GridSpec(1, 3)
+# gs1.update(top=1-1/3, bottom=0, left=0.1, right=0.9, wspace=0.5)
+#
+# ax = plt.subplot(gs1[0, 0])
+# ax.plot(x,Exact_u[:,25], 'b-', linewidth = 2, label = 'Exact')
+# ax.plot(x,U_pred[25,:], 'r--', linewidth = 2, label = 'Prediction')
+# ax.set_xlabel('$x$')
+# ax.set_ylabel('$u(t,x)$')
+# ax.set_title('$t = %.2f$' % (t[25]), fontsize = 10)
+# ax.axis('square')
+# ax.set_xlim([-1.1,1.1])
+# ax.set_ylim([-1.1,1.1])
+#
+# ax = plt.subplot(gs1[0, 1])
+# ax.plot(x,Exact_u[:,50], 'b-', linewidth = 2, label = 'Exact')
+# ax.plot(x,U_pred[50,:], 'r--', linewidth = 2, label = 'Prediction')
+# ax.set_xlabel('$x$')
+# ax.set_ylabel('$u(t,x)$')
+# ax.axis('square')
+# ax.set_xlim([-1.1,1.1])
+# ax.set_ylim([-1.1,1.1])
+# ax.set_title('$t = %.2f$' % (t[50]), fontsize = 10)
+# ax.legend(loc='upper center', bbox_to_anchor=(0.5, -0.3), ncol=5, frameon=False)
+#
+# ax = plt.subplot(gs1[0, 2])
+# ax.plot(x,Exact_u[:,75], 'b-', linewidth = 2, label = 'Exact')
+# ax.plot(x,U_pred[75,:], 'r--', linewidth = 2, label = 'Prediction')
+# ax.set_xlabel('$x$')
+# ax.set_ylabel('$u(t,x)$')
+# ax.axis('square')
+# ax.set_xlim([-1.1,1.1])
+# ax.set_ylim([-1.1,1.1])
+# ax.set_title('$t = %.2f$' % (t[75]), fontsize = 10)
 
 #show u_pred across domain
 fig, ax = plt.subplots()
