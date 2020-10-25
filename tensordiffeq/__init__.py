@@ -6,11 +6,13 @@ from . import plotting
 from . import utils
 from .models import CollocationModel1D
 from .utils import constant, LatinHypercubeSample, tensor
-from .plotting import newfig
+#from .plotting import newfig
+from .helpers import find_L2_error
 
 __all__ = [
     "models",
     "networks",
     "plotting",
-    "utils"
+    "utils",
+    "helpers"
 ]

@@ -17,7 +17,6 @@ def figsize(scale, nplots = 1):
 pgf_with_latex = {                      # setup matplotlib to use latex for output
     "pgf.texsystem": "pdflatex",        # change this if using xetex or lautex
     "text.usetex": True,                # use LaTeX to write all text
-    "font.family": "serif",
     "font.serif": [],                   # blank entries should cause plots to inherit fonts from the document
     "font.sans-serif": [],
     "font.monospace": [],
@@ -117,3 +116,25 @@ def plot_solution_domain1D(model, domain, ub, lb, Exact_u = None):
     ax.set_title('$t = %.2f$' % (domain[1][75]), fontsize = 10)
 
     plt.show()
+
+
+def plot_weights(model):
+    plt.scatter(model.t_f, model.x_f, c = model.col_weights.numpy(), s = model.col_weights.numpy()/10)
+    plt.show()
+
+def plot_residuals(FU_pred, extent):
+    fig, ax = plt.subplots()
+    ec = plt.imshow(FU_pred.T, interpolation='nearest', cmap='rainbow',
+                extent=extent,
+                origin='lower', aspect='auto')
+
+    #ax.add_collection(ec)
+    ax.autoscale_view()
+    ax.set_xlabel('$x$')
+    ax.set_ylabel('$t$')
+    cbar = plt.colorbar(ec)
+    cbar.set_label('$\overline{f}_u$ prediction')
+    plt.show()
+
+def get_griddata(grid, data, dims):
+    return griddata(grid, data, dims, method='cubic')

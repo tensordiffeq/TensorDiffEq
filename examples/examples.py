@@ -1,16 +1,6 @@
-from __future__ import absolute_import
-from __future__ import division
-from __future__ import print_function
-
-
 import numpy as np
 import tensorflow as tf
 import scipy.io
-from scipy.interpolate import griddata
-import matplotlib.gridspec as gridspec
-import matplotlib.pyplot as plt
-from mpl_toolkits.axes_grid1 import make_axes_locatable
-
 import tensordiffeq as tdq
 from tensordiffeq.models import CollocationModel1D
 
@@ -134,25 +124,26 @@ u_star = Exact_u.T.flatten()[:,None]
 
 u_pred, f_u_pred = model.predict(X_star)
 
+error_u = tdq.helpers.find_L2_error(u_pred, u_star)
+print('Error u: %e' % (error_u))
+
+U_pred = tdq.plotting.get_griddata(X_star, u_pred.flatten(), (X,T))
+FU_pred = tdq.plotting.get_griddata(X_star, f_u_pred.flatten(), (X,T))
+
 lb = np.array([-1.0, 0.0])
 ub = np.array([1.0, 1])
 
 tdq.plotting.plot_solution_domain1D(model, [x, t],  ub = ub, lb = lb, Exact_u=Exact_u)
 
-tdq.helpers.find_L2_error(pred, actual)
-
 tdq.plotting.plot_weights(model)
 
-tdq.plotting.plot_residuals(model)
-
-error_u = np.linalg.norm(u_star-u_pred,2)/np.linalg.norm(u_star,2)
-
-print('Error u: %e' % (error_u))
+extent = [0.0, 1.0, -1.0, 1.0]
+tdq.plotting.plot_residuals(FU_pred, extent)
 
 
-U_pred = griddata(X_star, u_pred.flatten(), (X, T), method='cubic')
 
-FU_pred = griddata(X_star, f_u_pred.flatten(), (X, T), method='cubic')
+
+
 
 # fig, ax = tdq.plotting.newfig(1.3, 1.0)
 #
@@ -217,33 +208,34 @@ FU_pred = griddata(X_star, f_u_pred.flatten(), (X, T), method='cubic')
 # ax.set_ylim([-1.1,1.1])
 # ax.set_title('$t = %.2f$' % (t[75]), fontsize = 10)
 
-#show u_pred across domain
-fig, ax = plt.subplots()
-
-h = plt.imshow(U_pred.T, interpolation='nearest', cmap='rainbow',
-            extent=[0.0, 1.0, -1.0, 1.0],
-            origin='lower', aspect='auto')
-divider = make_axes_locatable(ax)
-cax = divider.append_axes("right", size="5%", pad=0.05)
-fig.colorbar(h, cax=cax)
-
-plt.legend(frameon=False, loc = 'best')
-
-plt.show()
-
-fig, ax = plt.subplots()
-
-ec = plt.imshow(FU_pred.T, interpolation='nearest', cmap='rainbow',
-            extent=[0.0, math.pi/2, -5.0, 5.0],
-            origin='lower', aspect='auto')
-
-#ax.add_collection(ec)
-ax.autoscale_view()
-ax.set_xlabel('$x$')
-ax.set_ylabel('$t$')
-cbar = plt.colorbar(ec)
-cbar.set_label('$\overline{f}_u$ prediction')
-plt.show()
-
-plt.scatter(t_f, x_f, c = col_weights.numpy(), s = col_weights.numpy()/10)
-plt.show()
+# #show u_pred across domain
+# fig, ax = plt.subplots()
+#
+# h = plt.imshow(U_pred.T, interpolation='nearest', cmap='rainbow',
+#             extent=[0.0, 1.0, -1.0, 1.0],
+#             origin='lower', aspect='auto')
+# divider = make_axes_locatable(ax)
+# cax = divider.append_axes("right", size="5%", pad=0.05)
+# fig.colorbar(h, cax=cax)
+#
+# plt.legend(frameon=False, loc = 'best')
+#
+# plt.show()
+#
+# fig, ax = plt.subplots()
+#
+#
+# ec = plt.imshow(FU_pred.T, interpolation='nearest', cmap='rainbow',
+#             extent=[0.0, math.pi/2, -5.0, 5.0],
+#             origin='lower', aspect='auto')
+#
+# #ax.add_collection(ec)
+# ax.autoscale_view()
+# ax.set_xlabel('$x$')
+# ax.set_ylabel('$t$')
+# cbar = plt.colorbar(ec)
+# cbar.set_label('$\overline{f}_u$ prediction')
+# plt.show()
+#
+# plt.scatter(t_f, x_f, c = col_weights.numpy(), s = col_weights.numpy()/10)
+# plt.show()
