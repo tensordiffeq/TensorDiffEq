@@ -1,6 +1,7 @@
 README.md
 setup.py
 tensordiffeq/__init__.py
+tensordiffeq/helpers.py
 tensordiffeq/models.py
 tensordiffeq/networks.py
 tensordiffeq/plotting.py
