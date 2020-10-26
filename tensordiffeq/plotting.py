@@ -122,6 +122,10 @@ def plot_weights(model):
     plt.scatter(model.t_f, model.x_f, c = model.col_weights.numpy(), s = model.col_weights.numpy()/10)
     plt.show()
 
+def plot_glam_values(model):
+    plt.scatter(model.t_f, model.x_f, c = model.g(model.col_weights).numpy(), s = model.g(model.col_weights).numpy()/10)
+    plt.show()
+
 def plot_residuals(FU_pred, extent):
     fig, ax = plt.subplots()
     ec = plt.imshow(FU_pred.T, interpolation='nearest', cmap='rainbow',

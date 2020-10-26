@@ -19,6 +19,8 @@ def u_x_model(u_model, x, t):
     u_x = tf.gradients(u, x)
     return u, u_x
 
+def g(lam):
+    return 100.0*1.0/(1.0+tf.math.exp(-(10.0*(lam-1.0))))+1.0
 
 
 
@@ -49,7 +51,7 @@ tb = t[idx_t,:]
 
 # Grab collocation points using latin hpyercube sampling
 xlimits = np.array([[-1.0, 1.0], [0.0, 1.0]])
-X_f = tdq.utils.LatinHypercubeSample(N_f, xlimits) #x_f, t_f
+X_f = tdq.LatinHypercubeSample(N_f, xlimits) #x_f, t_f
 
 IVs = x[idx_x,:]
 
@@ -60,9 +62,9 @@ initial = np.concatenate((x0, 0*x0), 1)
 lower = np.concatenate((0*tb + lb[0], tb), 1)
 upper = np.concatenate((0*tb + ub[0], tb), 1)
 
-X0 = tdq.utils.tensor(initial) # (x0, 0)
-X_lb = tdq.utils.tensor(lower) # (lb[0], tb)
-X_ub =  tdq.utils.tensor(upper) # (ub[0], tb)
+X0 = tdq.tensor(initial) # (x0, 0)
+X_lb = tdq.tensor(lower) # (lb[0], tb)
+X_ub =  tdq.tensor(upper) # (ub[0], tb)
 
 lb = np.array([-1.0])
 ub = np.array([1.0])
@@ -111,10 +113,10 @@ t_ub = tf.convert_to_tensor(X_ub[:,1:2], dtype=tf.float32)
 
 layer_sizes = [2, 128, 128, 128, 128, 1]
 model = CollocationModel1D()
-model.compile(layer_sizes, f_model, x_f, t_f, x0, t0, u0, x_lb, t_lb, x_ub, t_ub, isPeriodic=True, isAdaptive=True, u_x_model=u_x_model, col_weights=col_weights, u_weights=u_weights)
+model.compile(layer_sizes, f_model, x_f, t_f, x0, t0, u0, x_lb, t_lb, x_ub, t_ub, isPeriodic=True, isAdaptive=True, u_x_model=u_x_model, col_weights=col_weights, u_weights=u_weights, g = g)
 
 #train loop
-model.fit(tf_iter = 1000, newton_iter = 1000)
+model.fit(tf_iter = 10000, newton_iter = 10000)
 
 #generate meshgrid for forward pass of u_pred
 X, T = np.meshgrid(x,t)
@@ -124,21 +126,23 @@ u_star = Exact_u.T.flatten()[:,None]
 
 u_pred, f_u_pred = model.predict(X_star)
 
-error_u = tdq.helpers.find_L2_error(u_pred, u_star)
+error_u = tdq.find_L2_error(u_pred, u_star)
 print('Error u: %e' % (error_u))
 
-U_pred = tdq.plotting.get_griddata(X_star, u_pred.flatten(), (X,T))
-FU_pred = tdq.plotting.get_griddata(X_star, f_u_pred.flatten(), (X,T))
+U_pred = tdq.get_griddata(X_star, u_pred.flatten(), (X,T))
+FU_pred = tdq.get_griddata(X_star, f_u_pred.flatten(), (X,T))
 
 lb = np.array([-1.0, 0.0])
 ub = np.array([1.0, 1])
 
-tdq.plotting.plot_solution_domain1D(model, [x, t],  ub = ub, lb = lb, Exact_u=Exact_u)
+tdq.plot_solution_domain1D(model, [x, t],  ub = ub, lb = lb, Exact_u=Exact_u)
 
-tdq.plotting.plot_weights(model)
+tdq.plot_weights(model)
+
+tdq.plot_glam_values(model)
 
 extent = [0.0, 1.0, -1.0, 1.0]
-tdq.plotting.plot_residuals(FU_pred, extent)
+tdq.plot_residuals(FU_pred, extent)
 
 
 

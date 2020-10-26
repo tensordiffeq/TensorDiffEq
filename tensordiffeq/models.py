@@ -16,7 +16,7 @@ class CollocationModel1D:
         self.u_weights = None
 
 
-    def compile(self, layer_sizes, f_model, x_f, t_f, x0, t0, u0, x_lb, t_lb, x_ub, t_ub, isPeriodic = False, u_x_model = None, isAdaptive = False, col_weights = None, u_weights = None):
+    def compile(self, layer_sizes, f_model, x_f, t_f, x0, t0, u0, x_lb, t_lb, x_ub, t_ub, isPeriodic = False, u_x_model = None, isAdaptive = False, col_weights = None, u_weights = None, g = None):
         self.u_model = neural_net(layer_sizes)
         print("Network Architecture:")
         self.u_model.summary()
@@ -32,6 +32,7 @@ class CollocationModel1D:
         self.t_f = t_f
         self.f_model = get_tf_model(f_model)
         self.isAdaptive = False
+        self.g = g
         #self.u_x_model = get_tf_model(u_x_model)
         if isPeriodic:
             self.periodicBC = True
@@ -62,7 +63,7 @@ class CollocationModel1D:
 
         mse_0_u = MSE(u0_pred, self.u0, self.u_weights)
 
-        mse_f_u = MSE(f_u_pred, constant(0.0), self.col_weights)
+        mse_f_u = g_MSE(f_u_pred, constant(0.0), self.g(self.col_weights))
 
         return  mse_0_u + mse_b_u + mse_f_u , mse_0_u, mse_b_u, mse_f_u
 

@@ -43,6 +43,9 @@ def MSE(pred, actual, weights = None):
       return tf.reduce_mean(tf.square(weights*tf.math.subtract(pred,actual)))
     return tf.reduce_mean(tf.square(tf.math.subtract(pred,actual)))
 
+def g_MSE(pred, actual, g_lam):
+    return tf.reduce_mean(g_lam*tf.square(tf.math.subtract(pred,actual)))
+
 
 def constant(val, dtype = tf.float32):
     return tf.constant(val, dtype= dtype)
