@@ -9,4 +9,5 @@ tensordiffeq/utils.py
 tensordiffeq.egg-info/PKG-INFO
 tensordiffeq.egg-info/SOURCES.txt
 tensordiffeq.egg-info/dependency_links.txt
+tensordiffeq.egg-info/requires.txt
 tensordiffeq.egg-info/top_level.txt
