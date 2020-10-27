@@ -63,7 +63,10 @@ class CollocationModel1D:
 
         mse_0_u = MSE(u0_pred, self.u0, self.u_weights)
 
-        mse_f_u = g_MSE(f_u_pred, constant(0.0), self.g(self.col_weights))
+        if self.g is not None:
+            mse_f_u = g_MSE(f_u_pred, constant(0.0), self.g(self.col_weights))
+        else:
+            mse_f_u = MSE(f_u_pred, constant(0.0))
 
         return  mse_0_u + mse_b_u + mse_f_u , mse_0_u, mse_b_u, mse_f_u
 

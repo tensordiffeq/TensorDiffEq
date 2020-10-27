@@ -19,11 +19,6 @@ def u_x_model(u_model, x, t):
     u_x = tf.gradients(u, x)
     return u, u_x
 
-def g(lam):
-    return 100.0*1.0/(1.0+tf.math.exp(-(10.0*(lam-1.0))))+1.0
-
-
-
 
 N0 = 200
 N_b = 100
@@ -32,49 +27,14 @@ N_f = 20000
 col_weights = tf.Variable(tf.random.uniform([N_f, 1]))
 u_weights = tf.Variable(100*tf.random.uniform([N0, 1]))
 
-# Import data, same data as Raissi et al
-
-data = scipy.io.loadmat('AC.mat')
-
-t = data['tt'].flatten()[:,None]
-x = data['x'].flatten()[:,None]
-Exact = data['uu']
-Exact_u = np.real(Exact)
-
-#grab training points from domain
-idx_x = np.random.choice(x.shape[0], N0, replace=False)
-x0 = x[idx_x,:]
-u0 = tf.cast(Exact_u[idx_x,0:1], dtype = tf.float32)
-
-idx_t = np.random.choice(t.shape[0], N_b, replace=False)
-tb = t[idx_t,:]
 
 # Grab collocation points using latin hpyercube sampling
 xlimits = np.array([[-1.0, 1.0], [0.0, 1.0]])
 X_f = tdq.LatinHypercubeSample(N_f, xlimits) #x_f, t_f
 
-IVs = x[idx_x,:]
 
 lb = np.array([-1.0])
 ub = np.array([1.0])
-
-initial = np.concatenate((x0, 0*x0), 1)
-lower = np.concatenate((0*tb + lb[0], tb), 1)
-upper = np.concatenate((0*tb + ub[0], tb), 1)
-
-X0 = tdq.tensor(initial) # (x0, 0)
-X_lb = tdq.tensor(lower) # (lb[0], tb)
-X_ub =  tdq.tensor(upper) # (ub[0], tb)
-
-lb = np.array([-1.0])
-ub = np.array([1.0])
-
-N0 = 200
-N_b = 100
-N_f = 20000
-
-col_weights = tf.Variable(tf.random.uniform([N_f, 1]))
-u_weights = tf.Variable(100*tf.random.uniform([N0, 1]))
 
 # Import data, same data as Raissi et al
 
@@ -113,10 +73,10 @@ t_ub = tf.convert_to_tensor(X_ub[:,1:2], dtype=tf.float32)
 
 layer_sizes = [2, 128, 128, 128, 128, 1]
 model = CollocationModel1D()
-model.compile(layer_sizes, f_model, x_f, t_f, x0, t0, u0, x_lb, t_lb, x_ub, t_ub, isPeriodic=True, isAdaptive=True, u_x_model=u_x_model, col_weights=col_weights, u_weights=u_weights, g = g)
+model.compile(layer_sizes, f_model, x_f, t_f, x0, t0, u0, x_lb, t_lb, x_ub, t_ub, isPeriodic=True, u_x_model=u_x_model)
 
 #train loop
-model.fit(tf_iter = 10000, newton_iter = 10000)
+model.fit(tf_iter = 100, newton_iter = 100)
 
 #generate meshgrid for forward pass of u_pred
 X, T = np.meshgrid(x,t)
@@ -135,14 +95,10 @@ FU_pred = tdq.get_griddata(X_star, f_u_pred.flatten(), (X,T))
 lb = np.array([-1.0, 0.0])
 ub = np.array([1.0, 1])
 
-tdq.plot_solution_domain1D(model, [x, t],  ub = ub, lb = lb, Exact_u=Exact_u)
-
-tdq.plot_weights(model)
-
-tdq.plot_glam_values(model)
+tdq.plotting.plot_solution_domain1D(model, [x, t],  ub = ub, lb = lb, Exact_u=Exact_u)
 
 extent = [0.0, 1.0, -1.0, 1.0]
-tdq.plot_residuals(FU_pred, extent)
+tdq.plotting.plot_residuals(FU_pred, extent)
 
 
 

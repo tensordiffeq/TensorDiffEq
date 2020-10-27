@@ -18,7 +18,6 @@ pgf_with_latex = {                      # setup matplotlib to use latex for outp
     "pgf.texsystem": "pdflatex",        # change this if using xetex or lautex
     "text.usetex": True,                # use LaTeX to write all text
     "font.serif": [],                   # blank entries should cause plots to inherit fonts from the document
-    "font.sans-serif": [],
     "font.monospace": [],
     "axes.labelsize": 10,               # LaTeX default is 10pt font.
     "font.size": 10,
@@ -70,9 +69,9 @@ def plot_solution_domain1D(model, domain, ub, lb, Exact_u = None):
 
 
     line = np.linspace(domain[0].min(), domain[0].max(), 2)[:,None]
-    ax.plot(domain[1][25]*np.ones((2,1)), line, 'k--', linewidth = 1)
     ax.plot(domain[1][50]*np.ones((2,1)), line, 'k--', linewidth = 1)
-    ax.plot(domain[1][75]*np.ones((2,1)), line, 'k--', linewidth = 1)
+    ax.plot(domain[1][100]*np.ones((2,1)), line, 'k--', linewidth = 1)
+    ax.plot(domain[1][150]*np.ones((2,1)), line, 'k--', linewidth = 1)
 
     ax.set_xlabel('$t$')
     ax.set_ylabel('$x$')
@@ -85,35 +84,35 @@ def plot_solution_domain1D(model, domain, ub, lb, Exact_u = None):
     gs1.update(top=1-1/3, bottom=0, left=0.1, right=0.9, wspace=0.5)
 
     ax = plt.subplot(gs1[0, 0])
-    ax.plot(domain[0],Exact_u[:,25], 'b-', linewidth = 2, label = 'Exact')
-    ax.plot(domain[0],U_pred[25,:], 'r--', linewidth = 2, label = 'Prediction')
+    ax.plot(domain[0],Exact_u[:,50], 'b-', linewidth = 2, label = 'Exact')
+    ax.plot(domain[0],U_pred[50,:], 'r--', linewidth = 2, label = 'Prediction')
     ax.set_xlabel('$x$')
     ax.set_ylabel('$u(t,x)$')
-    ax.set_title('$t = %.2f$' % (domain[1][25]), fontsize = 10)
+    ax.set_title('$t = %.2f$' % (domain[1][50]), fontsize = 10)
     ax.axis('square')
     ax.set_xlim([-1.1,1.1])
     ax.set_ylim([-1.1,1.1])
 
     ax = plt.subplot(gs1[0, 1])
-    ax.plot(domain[0],Exact_u[:,50], 'b-', linewidth = 2, label = 'Exact')
-    ax.plot(domain[0],U_pred[50,:], 'r--', linewidth = 2, label = 'Prediction')
+    ax.plot(domain[0],Exact_u[:,100], 'b-', linewidth = 2, label = 'Exact')
+    ax.plot(domain[0],U_pred[100,:], 'r--', linewidth = 2, label = 'Prediction')
     ax.set_xlabel('$x$')
     ax.set_ylabel('$u(t,x)$')
     ax.axis('square')
     ax.set_xlim([-1.1,1.1])
     ax.set_ylim([-1.1,1.1])
-    ax.set_title('$t = %.2f$' % (domain[1][50]), fontsize = 10)
+    ax.set_title('$t = %.2f$' % (domain[1][100]), fontsize = 10)
     ax.legend(loc='upper center', bbox_to_anchor=(0.5, -0.3), ncol=5, frameon=False)
 
     ax = plt.subplot(gs1[0, 2])
-    ax.plot(domain[0],Exact_u[:,75], 'b-', linewidth = 2, label = 'Exact')
-    ax.plot(domain[0],U_pred[75,:], 'r--', linewidth = 2, label = 'Prediction')
+    ax.plot(domain[0],Exact_u[:,150], 'b-', linewidth = 2, label = 'Exact')
+    ax.plot(domain[0],U_pred[150,:], 'r--', linewidth = 2, label = 'Prediction')
     ax.set_xlabel('$x$')
     ax.set_ylabel('$u(t,x)$')
     ax.axis('square')
     ax.set_xlim([-1.1,1.1])
     ax.set_ylim([-1.1,1.1])
-    ax.set_title('$t = %.2f$' % (domain[1][75]), fontsize = 10)
+    ax.set_title('$t = %.2f$' % (domain[1][150]), fontsize = 10)
 
     plt.show()
 
