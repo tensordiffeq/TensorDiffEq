@@ -27,7 +27,6 @@ N_f = 20000
 col_weights = tf.Variable(tf.random.uniform([N_f, 1]))
 u_weights = tf.Variable(100*tf.random.uniform([N0, 1]))
 
-
 # Grab collocation points using latin hpyercube sampling
 xlimits = np.array([[-1.0, 1.0], [0.0, 1.0]])
 X_f = tdq.LatinHypercubeSample(N_f, xlimits) #x_f, t_f
