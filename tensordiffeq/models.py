@@ -5,7 +5,7 @@ from .utils import *
 from .networks import *
 from .plotting import *
 
-class CollocationModel1D:
+class CollocationSolver1D:
     def __init__(self):
         self.sizes_w = None
         self.sizes_b = None

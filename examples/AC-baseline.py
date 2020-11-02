@@ -2,7 +2,7 @@ import numpy as np
 import tensorflow as tf
 import scipy.io
 import tensordiffeq as tdq
-from tensordiffeq.models import CollocationModel1D
+from tensordiffeq.models import CollocationSolver1D
 
 def f_model(u_model, x, t):
     u = u_model(tf.concat([x,t],1))
@@ -71,7 +71,7 @@ x_ub = tf.convert_to_tensor(X_ub[:,0:1], dtype=tf.float32)
 t_ub = tf.convert_to_tensor(X_ub[:,1:2], dtype=tf.float32)
 
 layer_sizes = [2, 128, 128, 128, 128, 1]
-model = CollocationModel1D()
+model = CollocationSolver1D()
 model.compile(layer_sizes, f_model, x_f, t_f, x0, t0, u0, x_lb, t_lb, x_ub, t_ub, isPeriodic=True, u_x_model=u_x_model)
 
 #train loop
