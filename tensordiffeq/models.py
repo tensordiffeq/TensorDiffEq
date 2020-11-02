@@ -77,8 +77,8 @@ class CollocationSolver1D:
             s_pred = self.u_model(tf.concat([self.data_x, self.data_t],1))
             mse_s_u = MSE(s_pred, self.data_y)
             mse_0_u + mse_b_u + mse_f_u + mse_s_u, mse_0_u, mse_b_u, mse_f_u
-
-        return  mse_0_u + mse_b_u + mse_f_u , mse_0_u, mse_b_u, mse_f_u
+        else:
+            return  mse_0_u + mse_b_u + mse_f_u, mse_0_u, mse_b_u, mse_f_u
 
     @tf.function
     def adaptgrad(self):
