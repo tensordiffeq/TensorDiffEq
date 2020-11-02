@@ -4,6 +4,7 @@ import time
 from .utils import *
 from .networks import *
 from .plotting import *
+from .fit import *
 
 class CollocationSolver1D:
     def __init__(self, assimilate = False):
@@ -16,9 +17,7 @@ class CollocationSolver1D:
 
 
     def compile(self, layer_sizes, f_model, x_f, t_f, x0, t0, u0, x_lb, t_lb, x_ub, t_ub, u_ub = None, u_lb = None, isPeriodic = False, u_x_model = None, isAdaptive = False, col_weights = None, u_weights = None, g = None):
-        self.u_model = neural_net(layer_sizes)
-        print("Network Architecture:")
-        self.u_model.summary()
+        self.layer_sizes = layer_sizes
         self.sizes_w, self.sizes_b = get_sizes(layer_sizes)
         self.x0 = x0
         self.t0 = t0
@@ -106,47 +105,47 @@ class CollocationSolver1D:
         return loss_value, mse_0, mse_b, mse_f, grads
 
     def fit(self, tf_iter, newton_iter, batch_sz = None):
-
-        #Can adjust batch size for collocation points, here we set it to N_f
-        if batch_sz is not None:
-            self.batch_sz = batch_sz
-        else:
-            self.batch_sz = len(self.x_f)
-
-        N_f = len(self.x_f)
-        n_batches =  N_f // self.batch_sz
-
-        start_time = time.time()
-        tf_optimizer = tf.keras.optimizers.Adam(lr = 0.005, beta_1=.99)
-        tf_optimizer_weights = tf.keras.optimizers.Adam(lr = 0.005, beta_1=.99)
-        #tf_optimizer_u = tf.keras.optimizers.Adam(lr = 0.005, beta_1=.99)
-
-        print("starting Adam training")
-
-        for epoch in range(tf_iter):
-            for i in range(n_batches):
-                if self.isAdaptive:
-                    loss_value, mse_0, mse_b, mse_f, grads, grads_col, grads_u = self.adaptgrad()
-                    tf_optimizer.apply_gradients(zip(grads, self.u_model.trainable_variables))
-                    tf_optimizer_weights.apply_gradients(zip([-grads_col, -grads_u], [self.col_weights, self.u_weights]))
-                else:
-                    loss_value, mse_0, mse_b, mse_f, grads = self.grad()
-                    tf_optimizer.apply_gradients(zip(grads, self.u_model.trainable_variables))
-
-            if epoch % 10 == 0:
-                elapsed = time.time() - start_time
-                print('It: %d, Time: %.2f' % (epoch, elapsed))
-                tf.print(f"mse_0: {mse_0}  mse_b  {mse_b}  mse_f: {mse_f}   total loss: {loss_value}")
-                start_time = time.time()
-
-        #l-bfgs-b optimization
-        print("Starting L-BFGS training")
-
-        loss_and_flat_grad = self.get_loss_and_flat_grad()
-
-        lbfgs(loss_and_flat_grad,
-          get_weights(self.u_model),
-          Struct(), maxIter=newton_iter, learningRate=0.8)
+        fit(self, tf_iter = tf_iter, newton_iter = newton_iter, batch_sz = batch_sz)
+        # #Can adjust batch size for collocation points, here we set it to N_f
+        # if batch_sz is not None:
+        #     self.batch_sz = batch_sz
+        # else:
+        #     self.batch_sz = len(self.x_f)
+        #
+        # N_f = len(self.x_f)
+        # n_batches =  N_f // self.batch_sz
+        #
+        # start_time = time.time()
+        # tf_optimizer = tf.keras.optimizers.Adam(lr = 0.005, beta_1=.99)
+        # tf_optimizer_weights = tf.keras.optimizers.Adam(lr = 0.005, beta_1=.99)
+        # #tf_optimizer_u = tf.keras.optimizers.Adam(lr = 0.005, beta_1=.99)
+        #
+        # print("starting Adam training")
+        #
+        # for epoch in range(tf_iter):
+        #     for i in range(n_batches):
+        #         if self.isAdaptive:
+        #             loss_value, mse_0, mse_b, mse_f, grads, grads_col, grads_u = self.adaptgrad()
+        #             tf_optimizer.apply_gradients(zip(grads, self.u_model.trainable_variables))
+        #             tf_optimizer_weights.apply_gradients(zip([-grads_col, -grads_u], [self.col_weights, self.u_weights]))
+        #         else:
+        #             loss_value, mse_0, mse_b, mse_f, grads = self.grad()
+        #             tf_optimizer.apply_gradients(zip(grads, self.u_model.trainable_variables))
+        #
+        #     if epoch % 10 == 0:
+        #         elapsed = time.time() - start_time
+        #         print('It: %d, Time: %.2f' % (epoch, elapsed))
+        #         tf.print(f"mse_0: {mse_0}  mse_b  {mse_b}  mse_f: {mse_f}   total loss: {loss_value}")
+        #         start_time = time.time()
+        #
+        # #l-bfgs-b optimization
+        # print("Starting L-BFGS training")
+        #
+        # loss_and_flat_grad = self.get_loss_and_flat_grad()
+        #
+        # lbfgs(loss_and_flat_grad,
+        #   get_weights(self.u_model),
+        #   Struct(), maxIter=newton_iter, learningRate=0.8)
 
 
     #L-BFGS implementation from https://github.com/pierremtb/PINNs-TF2.0
