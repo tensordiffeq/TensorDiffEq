@@ -6,12 +6,13 @@ from .networks import *
 from .plotting import *
 
 class CollocationSolver1D:
-    def __init__(self):
+    def __init__(self, assimilate = False):
         self.sizes_w = None
         self.sizes_b = None
         self.optimizer_NN = None
         self.col_weights = None
         self.u_weights = None
+        self.assimilate = assimilate
 
 
     def compile(self, layer_sizes, f_model, x_f, t_f, x0, t0, u0, x_lb, t_lb, x_ub, t_ub, isPeriodic = False, u_x_model = None, isAdaptive = False, col_weights = None, u_weights = None, g = None):
@@ -49,6 +50,12 @@ class CollocationSolver1D:
             if self.col_weights is not None and self.u_weights is not None:
                 raise Exception("Adaptive weights are turned off but weight vectors were provided. Set the weight vectors to \"none\" to continue")
 
+    def compile_data(self, x, t, y):
+        if not self.assimilate:
+            raise Exception("Assimilate needs to be set to 'true' for data assimilation. Re-call CollocationSolver1D with assimilate=True.")
+            self.data_x = x
+            self.data_y = t
+            self.data_s = y
 
     def loss(self):
         f_u_pred = self.f_model(self.u_model, self.x_f, self.t_f)
@@ -65,6 +72,11 @@ class CollocationSolver1D:
             mse_f_u = g_MSE(f_u_pred, constant(0.0), self.g(self.col_weights))
         else:
             mse_f_u = MSE(f_u_pred, constant(0.0))
+
+        if assimilate:
+            s_pred = self.u_model(tf.concat([self.data_x, self.data_t],1))
+            mse_s_u = MSE(s_pred, self.data_y)
+            mse_0_u + mse_b_u + mse_f_u + mse_s_u, mse_0_u, mse_b_u, mse_f_u
 
         return  mse_0_u + mse_b_u + mse_f_u , mse_0_u, mse_b_u, mse_f_u
 
@@ -171,7 +183,7 @@ class CollocationSolver2D(CollocationSolver1D):
         u0_pred = self.u_model(tf.concat([self.x0, self.y0, self.t0],1))
 
         u_lb_pred, u_x_lb_pred, u_y_lb_pred = self.u_x_model(self.u_model, self.x_lb, self.y_lb, self.t_lb)
-        u_ub_pred, u_x_ub_pred, u_x_lb_pred = self.u_x_model(self.u_model, self.x_ub, self.y_ub, self.t_ub)
+        u_ub_pred, u_x_ub_pred, u_y_ub_pred = self.u_x_model(self.u_model, self.x_ub, self.y_ub, self.t_ub)
 
         mse_b_u = MSE(u_lb_pred,u_ub_pred) + MSE(u_x_lb_pred, u_x_ub_pred) + MSE(u_y_lb_pred, u_y_ub_pred)
 
