@@ -15,7 +15,7 @@ class CollocationSolver1D:
         self.assimilate = assimilate
 
 
-    def compile(self, layer_sizes, f_model, x_f, t_f, x0, t0, u0, x_lb, t_lb, x_ub, t_ub, isPeriodic = False, u_x_model = None, isAdaptive = False, col_weights = None, u_weights = None, g = None):
+    def compile(self, layer_sizes, f_model, x_f, t_f, x0, t0, u0, x_lb, t_lb, x_ub, t_ub, u_ub = None, u_lb = None, isPeriodic = False, u_x_model = None, isAdaptive = False, col_weights = None, u_weights = None, g = None):
         self.u_model = neural_net(layer_sizes)
         print("Network Architecture:")
         self.u_model.summary()
@@ -25,8 +25,10 @@ class CollocationSolver1D:
         self.u0 = u0
         self.x_lb = x_lb
         self.t_lb = t_lb
+        self.u_lb = u_lb
         self.x_ub = x_ub
         self.t_ub = t_ub
+        self.u_ub = u_ub
         self.x_f = x_f
         self.t_f = t_f
         self.f_model = get_tf_model(f_model)
@@ -62,10 +64,14 @@ class CollocationSolver1D:
         f_u_pred = self.f_model(self.u_model, self.x_f, self.t_f)
         u0_pred = self.u_model(tf.concat([self.x0, self.t0],1))
 
-        u_lb_pred, u_x_lb_pred = self.u_x_model(self.u_model, self.x_lb, self.t_lb)
-        u_ub_pred, u_x_ub_pred = self.u_x_model(self.u_model, self.x_ub, self.t_ub)
-
-        mse_b_u = MSE(u_lb_pred,u_ub_pred) + MSE(u_x_lb_pred, u_x_ub_pred)
+        if self.periodicBC:
+            u_lb_pred, u_x_lb_pred = self.u_x_model(self.u_model, self.x_lb, self.t_lb)
+            u_ub_pred, u_x_ub_pred = self.u_x_model(self.u_model, self.x_ub, self.t_ub)
+            mse_b_u = MSE(u_lb_pred,u_ub_pred) + MSE(u_x_lb_pred, u_x_ub_pred)
+        else:
+            u_lb_pred = self.u_model(tf.concat([self.x_lb, self.t_lb],1))
+            u_ub_pred = self.u_model(tf.concat([self.x_ub, self.t_ub],1))
+            mse_b_u = MSE(u_lb_pred, u_lb) + MSE(u_ub_pred, u_ub)
 
         mse_0_u = MSE(u0_pred, self.u0, self.u_weights)
 
