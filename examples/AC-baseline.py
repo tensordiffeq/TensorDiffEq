@@ -21,6 +21,7 @@ def u_x_model(u_model, x, t):
 
 
 N0 = 200
+NS = 200
 N_b = 100
 N_f = 20000
 
@@ -49,6 +50,18 @@ idx_x = np.random.choice(x.shape[0], N0, replace=False)
 x0 = x[idx_x,:]
 u0 = tf.cast(Exact_u[idx_x,0:1], dtype = tf.float32)
 
+idx_xs = np.random.choice(x.shape[0], NS, replace=False) #need multiple Xs
+idx_ts = 100 #for 1 t value
+y_s = Exact[idx_xs, idx_ts]
+x_s = x[idx_xs,:]
+t_s = np.repeat(t[idx_ts,:], len(x_s))
+
+y_s = tf.cast(tf.reshape(y_s, (-1,1)), dtype = tf.float32) #tensors need to be of shape (NS, 1), not (NS, )
+x_s = tdq.tensor(x_s)
+t_s = tf.cast(tf.reshape(t_s, (-1,1)), dtype = tf.float32)
+
+print(t_s, x_s, y_s)
+
 idx_t = np.random.choice(t.shape[0], N_b, replace=False)
 tb = t[idx_t,:]
 
@@ -71,8 +84,9 @@ x_ub = tf.convert_to_tensor(X_ub[:,0:1], dtype=tf.float32)
 t_ub = tf.convert_to_tensor(X_ub[:,1:2], dtype=tf.float32)
 
 layer_sizes = [2, 128, 128, 128, 128, 1]
-model = CollocationSolver1D()
+model = CollocationSolver1D(assimilate = True)
 model.compile(layer_sizes, f_model, x_f, t_f, x0, t0, u0, x_lb, t_lb, x_ub, t_ub, isPeriodic=True, u_x_model=u_x_model)
+model.compile_data(x_s, t_s, y_s)
 
 #train loop
 model.fit(tf_iter = 100, newton_iter = 100)

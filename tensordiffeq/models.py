@@ -51,11 +51,12 @@ class CollocationSolver1D:
                 raise Exception("Adaptive weights are turned off but weight vectors were provided. Set the weight vectors to \"none\" to continue")
 
     def compile_data(self, x, t, y):
+        print("inside compile data")
         if not self.assimilate:
-            raise Exception("Assimilate needs to be set to 'true' for data assimilation. Re-call CollocationSolver1D with assimilate=True.")
-            self.data_x = x
-            self.data_y = t
-            self.data_s = y
+            raise Exception("Assimilate needs to be set to 'true' for data assimilation. Re-initialize CollocationSolver1D with assimilate=True.")
+        self.data_x = x
+        self.data_t = t
+        self.data_s = y
 
     def loss(self):
         f_u_pred = self.f_model(self.u_model, self.x_f, self.t_f)
@@ -73,12 +74,12 @@ class CollocationSolver1D:
         else:
             mse_f_u = MSE(f_u_pred, constant(0.0))
 
-        if assimilate:
+        if self.assimilate:
             s_pred = self.u_model(tf.concat([self.data_x, self.data_t],1))
-            mse_s_u = MSE(s_pred, self.data_y)
-            mse_0_u + mse_b_u + mse_f_u + mse_s_u, mse_0_u, mse_b_u, mse_f_u
+            mse_s_u = MSE(s_pred, self.data_s)
+            return mse_0_u + mse_b_u + mse_f_u + mse_s_u, mse_0_u, mse_b_u, mse_f_u
         else:
-            return  mse_0_u + mse_b_u + mse_f_u, mse_0_u, mse_b_u, mse_f_u
+            return mse_0_u + mse_b_u + mse_f_u, mse_0_u, mse_b_u, mse_f_u
 
     @tf.function
     def adaptgrad(self):
