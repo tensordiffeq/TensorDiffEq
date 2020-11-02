@@ -158,42 +158,28 @@ class CollocationSolver1D:
         return u_star.numpy(), f_u_star.numpy()
 
 
-class CollocationModel2D(CollocationModel1D):
+class CollocationSolver2D(CollocationSolver1D):
 
-    def compile(self, layer_sizes, f_model, x_f, t_f, x0, t0, u0, x_lb, t_lb, x_ub, t_ub, isPeriodic = False, u_x_model = None, isAdaptive = False, col_weights = None, u_weights = None, g = None):
-        self.u_model = neural_net(layer_sizes)
-        print("Network Architecture:")
-        self.u_model.summary()
-        self.sizes_w, self.sizes_b = get_sizes(layer_sizes)
-        self.x0 = x0
-        self.t0 = t0
-        self.u0 = u0
-        self.x_lb = x_lb
+    def compile(self, layer_sizes, f_model, x_f, y_f, t_f, x0, t0, u0, x_lb, y_lb, t_lb, x_ub, y_ub, t_ub, isPeriodic = False, u_x_model = None, isAdaptive = False, col_weights = None, u_weights = None, g = None):
+        CollocationSolver1D.compile(self, layer_sizes, f_model, x_f, t_f, x0, t0, u0, x_lb, t_lb, x_ub, t_ub, isPeriodic, u_x_model, isAdaptive, col_weights, u_weights, g)
         self.y_lb = y_lb
-        self.t_lb = t_lb
-        self.x_ub = x_ub
-        self.y_ub - y_ub
-        self.t_ub = t_ub
-        self.x_f = x_f
+        self.y_ub = y_ub
         self.y_f = y_f
-        self.t_f = t_f
-        self.f_model = get_tf_model(f_model)
-        self.isAdaptive = False
-        self.g = g
-        #self.u_x_model = get_tf_model(u_x_model)
-        if isPeriodic:
-            self.periodicBC = True
-            if not u_x_model:
-                raise Exception("Periodic BC is listed but no u_x model is defined!")
-            else:
-                self.u_x_model = get_tf_model(u_x_model)
 
-        self.col_weights = col_weights
-        self.u_weights = u_weights
-        if isAdaptive:
-            self.isAdaptive = True
-            if self.col_weights is None and self.u_weights is  None:
-                raise Exception("Adaptive weights selected but no inputs were specified!")
-        if not isAdaptive:
-            if self.col_weights is not None and self.u_weights is not None:
-                raise Exception("Adaptive weights are turned off but weight vectors were provided. Set the weight vectors to \"none\" to continue")
+    def loss(self):
+        f_u_pred = self.f_model(self.u_model, self.x_f, self.y_f, self.t_f)
+        u0_pred = self.u_model(tf.concat([self.x0, self.y0, self.t0],1))
+
+        u_lb_pred, u_x_lb_pred, u_y_lb_pred = self.u_x_model(self.u_model, self.x_lb, self.y_lb, self.t_lb)
+        u_ub_pred, u_x_ub_pred, u_x_lb_pred = self.u_x_model(self.u_model, self.x_ub, self.y_ub, self.t_ub)
+
+        mse_b_u = MSE(u_lb_pred,u_ub_pred) + MSE(u_x_lb_pred, u_x_ub_pred) + MSE(u_y_lb_pred, u_y_ub_pred)
+
+        mse_0_u = MSE(u0_pred, self.u0, self.u_weights)
+
+        if self.g is not None:
+            mse_f_u = g_MSE(f_u_pred, constant(0.0), self.g(self.col_weights))
+        else:
+            mse_f_u = MSE(f_u_pred, constant(0.0))
+
+        return  mse_0_u + mse_b_u + mse_f_u , mse_0_u, mse_b_u, mse_f_u
