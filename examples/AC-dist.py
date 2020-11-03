@@ -91,7 +91,7 @@ model.compile(layer_sizes, f_model, x_f, t_f, x0, t0, u0, x_lb, t_lb, x_ub, t_ub
 model.compile_data(x_s, t_s, y_s)
 
 #train loop
-model.fit(tf_iter = 5000, newton_iter = 5000)
+model.fit(tf_iter = 5000, newton_iter = 5000, dist = True)
 
 #generate meshgrid for forward pass of u_pred
 X, T = np.meshgrid(x,t)

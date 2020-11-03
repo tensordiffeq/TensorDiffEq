@@ -1,3 +1,4 @@
+
 import tensorflow as tf
 import numpy as np
 import time
@@ -43,6 +44,7 @@ class CollocationSolver1D:
 
         self.col_weights = col_weights
         self.u_weights = u_weights
+
         if isAdaptive:
             self.isAdaptive = True
             if self.col_weights is None and self.u_weights is  None:
@@ -103,8 +105,12 @@ class CollocationSolver1D:
             del tape
         return loss_value, mse_0, mse_b, mse_f, grads
 
-    def fit(self, tf_iter, newton_iter, batch_sz = None):
-        fit(self, tf_iter = tf_iter, newton_iter = newton_iter, batch_sz = batch_sz)
+    def fit(self, tf_iter, newton_iter, batch_sz = None, dist = False):
+        if dist:
+            fit_dist(self, tf_iter = tf_iter, newton_iter = newton_iter, batch_sz = batch_sz)
+        else:
+            fit(self, tf_iter = tf_iter, newton_iter = newton_iter, batch_sz = batch_sz)
+
         # #Can adjust batch size for collocation points, here we set it to N_f
         # if batch_sz is not None:
         #     self.batch_sz = batch_sz
