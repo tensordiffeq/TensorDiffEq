@@ -60,8 +60,6 @@ y_s = tf.cast(tf.reshape(y_s, (-1,1)), dtype = tf.float32) #tensors need to be o
 x_s = tdq.tensor(x_s)
 t_s = tf.cast(tf.reshape(t_s, (-1,1)), dtype = tf.float32)
 
-print(t_s, x_s, y_s)
-
 idx_t = np.random.choice(t.shape[0], N_b, replace=False)
 tb = t[idx_t,:]
 

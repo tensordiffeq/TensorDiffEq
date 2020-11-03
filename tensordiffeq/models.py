@@ -52,7 +52,6 @@ class CollocationSolver1D:
                 raise Exception("Adaptive weights are turned off but weight vectors were provided. Set the weight vectors to \"none\" to continue")
 
     def compile_data(self, x, t, y):
-        print("inside compile data")
         if not self.assimilate:
             raise Exception("Assimilate needs to be set to 'true' for data assimilation. Re-initialize CollocationSolver1D with assimilate=True.")
         self.data_x = x
