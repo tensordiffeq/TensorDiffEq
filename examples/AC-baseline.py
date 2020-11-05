@@ -21,15 +21,11 @@ def u_x_model(u_model, x, t):
 
 
 N0 = 200
-NS = 200
 N_b = 100
 N_f = 20000
 
-col_weights = tf.Variable(tf.random.uniform([N_f, 1]))
-u_weights = tf.Variable(100*tf.random.uniform([N0, 1]))
-
 # Grab collocation points using latin hpyercube sampling
-xlimits = np.array([[-1.0, 1.0], [0.0, 1.0]])
+xlimits = np.array([[-1.0, 1.0], [0.0, 1.0]]) #x,t domain
 X_f = tdq.LatinHypercubeSample(N_f, xlimits) #x_f, t_f
 
 
