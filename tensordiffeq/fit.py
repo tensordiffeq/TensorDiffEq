@@ -50,8 +50,6 @@ def fit(obj, tf_iter, newton_iter, batch_sz = None):
       get_weights(obj.u_model),
       Struct(), maxIter=newton_iter, learningRate=0.8)
 
-
-
 def fit_dist(obj, tf_iter, newton_iter, batch_sz = None):
 
     BUFFER_SIZE = len(obj.x_f)
