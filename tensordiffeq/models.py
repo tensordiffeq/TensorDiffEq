@@ -17,7 +17,7 @@ class CollocationSolver1D:
         self.assimilate = assimilate
 
 
-    def compile(self, layer_sizes, f_model, x_f, t_f, x0, t0, u0, x_lb, t_lb, x_ub, t_ub, u_ub = None, u_lb = None, isPeriodic = False, u_x_model = None, isAdaptive = False, col_weights = None, u_weights = None, g = None):
+    def compile(self, layer_sizes, f_model, x_f, t_f, x0, t0, u0, x_lb, t_lb, x_ub, t_ub, u_ub = None, u_lb = None, isPeriodic = False, u_x_model = None, isAdaptive = False, col_weights = None, u_weights = None, g = None, dist = False):
         self.layer_sizes = layer_sizes
         self.sizes_w, self.sizes_b = get_sizes(layer_sizes)
         self.x0 = x0
@@ -34,6 +34,7 @@ class CollocationSolver1D:
         self.f_model = get_tf_model(f_model)
         self.isAdaptive = False
         self.g = g
+        self.dist = dist
         #self.u_x_model = get_tf_model(u_x_model)
         if isPeriodic:
             self.periodicBC = True
@@ -61,7 +62,10 @@ class CollocationSolver1D:
         self.data_s = y
 
     def loss(self):
-        f_u_pred = self.f_model(self.u_model, self.x_f, self.t_f)
+        if self.dist:
+            f_u_pred = self.f_model(self.u_model, self.dist_x_f, self.dist_t_f)
+        else:
+            f_u_pred = self.f_model(self.u_model, self.x_f, self.t_f)
         u0_pred = self.u_model(tf.concat([self.x0, self.t0],1))
 
         if self.periodicBC:
@@ -87,7 +91,7 @@ class CollocationSolver1D:
         else:
             return mse_0_u + mse_b_u + mse_f_u, mse_0_u, mse_b_u, mse_f_u
 
-    @tf.function
+
     def adaptgrad(self):
         with tf.GradientTape(persistent=True) as tape:
             loss_value, mse_0, mse_b, mse_f = self.loss()
@@ -97,7 +101,6 @@ class CollocationSolver1D:
             del tape
         return loss_value, mse_0, mse_b, mse_f, grads, grads_col, grads_u
 
-    @tf.function
     def grad(self):
         with tf.GradientTape() as tape:
             loss_value, mse_0, mse_b, mse_f = self.loss()
@@ -105,52 +108,11 @@ class CollocationSolver1D:
             del tape
         return loss_value, mse_0, mse_b, mse_f, grads
 
-    def fit(self, tf_iter, newton_iter, batch_sz = None, dist = False):
-        if dist:
+    def fit(self, tf_iter, newton_iter, batch_sz = None):
+        if self.dist:
             fit_dist(self, tf_iter = tf_iter, newton_iter = newton_iter, batch_sz = batch_sz)
         else:
             fit(self, tf_iter = tf_iter, newton_iter = newton_iter, batch_sz = batch_sz)
-
-        # #Can adjust batch size for collocation points, here we set it to N_f
-        # if batch_sz is not None:
-        #     self.batch_sz = batch_sz
-        # else:
-        #     self.batch_sz = len(self.x_f)
-        #
-        # N_f = len(self.x_f)
-        # n_batches =  N_f // self.batch_sz
-        #
-        # start_time = time.time()
-        # tf_optimizer = tf.keras.optimizers.Adam(lr = 0.005, beta_1=.99)
-        # tf_optimizer_weights = tf.keras.optimizers.Adam(lr = 0.005, beta_1=.99)
-        # #tf_optimizer_u = tf.keras.optimizers.Adam(lr = 0.005, beta_1=.99)
-        #
-        # print("starting Adam training")
-        #
-        # for epoch in range(tf_iter):
-        #     for i in range(n_batches):
-        #         if self.isAdaptive:
-        #             loss_value, mse_0, mse_b, mse_f, grads, grads_col, grads_u = self.adaptgrad()
-        #             tf_optimizer.apply_gradients(zip(grads, self.u_model.trainable_variables))
-        #             tf_optimizer_weights.apply_gradients(zip([-grads_col, -grads_u], [self.col_weights, self.u_weights]))
-        #         else:
-        #             loss_value, mse_0, mse_b, mse_f, grads = self.grad()
-        #             tf_optimizer.apply_gradients(zip(grads, self.u_model.trainable_variables))
-        #
-        #     if epoch % 10 == 0:
-        #         elapsed = time.time() - start_time
-        #         print('It: %d, Time: %.2f' % (epoch, elapsed))
-        #         tf.print(f"mse_0: {mse_0}  mse_b  {mse_b}  mse_f: {mse_f}   total loss: {loss_value}")
-        #         start_time = time.time()
-        #
-        # #l-bfgs-b optimization
-        # print("Starting L-BFGS training")
-        #
-        # loss_and_flat_grad = self.get_loss_and_flat_grad()
-        #
-        # lbfgs(loss_and_flat_grad,
-        #   get_weights(self.u_model),
-        #   Struct(), maxIter=newton_iter, learningRate=0.8)
 
 
     #L-BFGS implementation from https://github.com/pierremtb/PINNs-TF2.0

@@ -1,8 +1,10 @@
 import numpy as np
+import os
 import tensorflow as tf
 import scipy.io
 import tensordiffeq as tdq
 from tensordiffeq.models import CollocationSolver1D
+os.environ["TF_GPU_THREAD_MODE"] = "gpu_private"
 
 def f_model(u_model, x, t):
     u = u_model(tf.concat([x,t],1))
@@ -82,16 +84,15 @@ x_ub = tf.convert_to_tensor(X_ub[:,0:1], dtype=tf.float32)
 t_ub = tf.convert_to_tensor(X_ub[:,1:2], dtype=tf.float32)
 
 layer_sizes = [2, 128, 128, 128, 128, 1]
-model = CollocationSolver1D(assimilate = True)
+model = CollocationSolver1D()
 
 def g(lam):
     return lam**2
 
-model.compile(layer_sizes, f_model, x_f, t_f, x0, t0, u0, x_lb, t_lb, x_ub, t_ub, isPeriodic=True, u_x_model=u_x_model, isAdaptive = True, col_weights = col_weights, u_weights = u_weights, g = g)
-model.compile_data(x_s, t_s, y_s)
-
+model.compile(layer_sizes, f_model, x_f, t_f, x0, t0, u0, x_lb, t_lb, x_ub, t_ub, isPeriodic=True, u_x_model=u_x_model, isAdaptive = True, col_weights = col_weights, u_weights = u_weights, g = g, dist = True)
+#model.compile(layer_sizes, f_model, x_f, t_f, x0, t0, u0, x_lb, t_lb, x_ub, t_ub, isPeriodic=True, u_x_model=u_x_model, dist = True)
 #train loop
-model.fit(tf_iter = 5000, newton_iter = 5000, dist = True)
+model.fit(tf_iter = 5000, newton_iter = 5000)
 
 #generate meshgrid for forward pass of u_pred
 X, T = np.meshgrid(x,t)
