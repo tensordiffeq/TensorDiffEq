@@ -90,18 +90,10 @@ def fit_dist(obj, tf_iter, newton_iter, batch_sz = None):
     #tf_optimizer_u = tf.keras.optimizers.Adam(lr = 0.005, beta_1=.99)
 
     print("starting Adam training")
-    print(n_batches)
     STEPS = np.max((n_batches // obj.strategy.num_replicas_in_sync,1))
-    print(STEPS)
     #tf.profiler.experimental.start('../cache/tblogdir1')
     for epoch in range(tf_iter):
-        total_loss = 0.0
-        num_batches = 0
-        dist_dataset_iterator = iter(train_dataset)
-        for _ in range(STEPS):
-            total_loss += distributed_train_step(obj, next(dist_dataset_iterator))
-            num_batches += 1
-        train_loss = total_loss / num_batches
+        train_loss = train_epoch(obj, obj.train_dist_dataset, STEPS)
 
         if epoch % 10 == 0:
             elapsed = time.time() - start_time
@@ -133,9 +125,16 @@ def fit_dist(obj, tf_iter, newton_iter, batch_sz = None):
     #     #
     #     #     return loss_and_flat_grad
 
-
-
-
+@tf.function
+def train_epoch(obj, dataset, STEPS):
+    total_loss = 0.0
+    num_batches = 0.0
+    dist_dataset_iterator = iter(dataset)
+    for _ in range(STEPS):
+        total_loss += distributed_train_step(obj, next(dist_dataset_iterator))
+        num_batches += 1
+    train_loss = total_loss / num_batches
+    return train_loss
 
 def train_step(obj, inputs):
     obj.dist_x_f, obj.dist_t_f = inputs
