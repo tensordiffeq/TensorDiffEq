@@ -31,21 +31,19 @@ def fit(obj, tf_iter, newton_iter, batch_sz = None):
     print("starting Adam training")
 
     for epoch in range(tf_iter):
-        for i in range(n_batches):
-            if obj.isAdaptive:
-                loss_value, mse_0, mse_b, mse_f, grads, grads_col, grads_u = obj.adaptgrad()
-                obj.tf_optimizer.apply_gradients(zip(grads, obj.u_model.trainable_variables))
-                obj.tf_optimizer_weights.apply_gradients(zip([-grads_col, -grads_u], [obj.col_weights, obj.u_weights]))
-            else:
-                loss_value, mse_0, mse_b, mse_f, grads = obj.grad()
-                obj.tf_optimizer.apply_gradients(zip(grads, obj.u_model.trainable_variables))
+        if obj.isAdaptive:
+            loss_value, mse_0, mse_b, mse_f, grads, grads_col, grads_u = train_op(obj, n_batches)
+        else:
+            loss_value, mse_0, mse_b, mse_f, grads = train_op(obj, n_batches)
 
         if epoch % 10 == 0:
             elapsed = time.time() - start_time
             print('It: %d, Time: %.2f' % (epoch, elapsed))
             tf.print(f"mse_0: {mse_0}  mse_b  {mse_b}  mse_f: {mse_f}   total loss: {loss_value}")
             start_time = time.time()
-
+        #if epoch == 0:
+            #tf.profiler.experimental.start('../cache/tblogdir1')
+    #tf.profiler.experimental.stop()
     #l-bfgs-b optimization
     print("Starting L-BFGS training")
 
@@ -54,6 +52,19 @@ def fit(obj, tf_iter, newton_iter, batch_sz = None):
     lbfgs(loss_and_flat_grad,
       get_weights(obj.u_model),
       Struct(), maxIter=newton_iter, learningRate=0.8)
+
+@tf.function
+def train_op(obj, n_batches):
+    for i in range(n_batches):
+        if obj.isAdaptive:
+            loss_value, mse_0, mse_b, mse_f, grads, grads_col, grads_u = obj.adaptgrad()
+            obj.tf_optimizer.apply_gradients(zip(grads, obj.u_model.trainable_variables))
+            obj.tf_optimizer_weights.apply_gradients(zip([-grads_col, -grads_u], [obj.col_weights, obj.u_weights]))
+            return loss_value, mse_0, mse_b, mse_f, grads, grads_col, grads_u
+        else:
+            loss_value, mse_0, mse_b, mse_f, grads = obj.grad()
+            obj.tf_optimizer.apply_gradients(zip(grads, obj.u_model.trainable_variables))
+            return loss_value, mse_0, mse_b, mse_f, grads
 
 def fit_dist(obj, tf_iter, newton_iter, batch_sz = None):
 
