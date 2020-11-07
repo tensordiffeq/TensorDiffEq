@@ -4,6 +4,8 @@ from .networks import *
 from .models import *
 from .utils import *
 import time
+import os
+os.environ["TF_GPU_THREAD_MODE"] = "gpu_private"
 
 
 
@@ -57,8 +59,7 @@ def fit_dist(obj, tf_iter, newton_iter, batch_sz = None):
 
     BUFFER_SIZE = len(obj.x_f)
     EPOCHS = tf_iter
-
-    obj.strategy = tf.distribute.MirroredStrategy()
+    obj.strategy = tf.distribute.MirroredStrategy(cross_device_ops = None)
     print("number of devices: {}".format(obj.strategy.num_replicas_in_sync))
 
     if batch_sz is not None:
@@ -73,8 +74,10 @@ def fit_dist(obj, tf_iter, newton_iter, batch_sz = None):
     GLOBAL_BATCH_SIZE = BATCH_SIZE_PER_REPLICA * obj.strategy.num_replicas_in_sync
 
     train_dataset = tf.data.Dataset.from_tensor_slices((obj.x_f, obj.t_f)).batch(GLOBAL_BATCH_SIZE)
+    col_weights = tf.data.Dataset.from_tensor_slices((obj.col_weights)).batch(GLOBAL_BATCH_SIZE)
     print(GLOBAL_BATCH_SIZE)
     obj.train_dist_dataset = obj.strategy.experimental_distribute_dataset(train_dataset)
+    col_weights = obj.strategy.experimental_distribute_dataset(col_weights)
 
     start_time = time.time()
 
@@ -85,7 +88,7 @@ def fit_dist(obj, tf_iter, newton_iter, batch_sz = None):
         #Can adjust batch size for collocation points, here we set it to N_f
 
         if obj.isAdaptive:
-            obj.col_weights = tf.Variable(tf.random.uniform([20000, 1]))
+            obj.col_weights = tf.Variable(tf.random.uniform([5000, 1]))
             obj.u_weights = tf.Variable(100*tf.random.uniform([200, 1]))
     #tf_optimizer_u = tf.keras.optimizers.Adam(lr = 0.005, beta_1=.99)
 
@@ -93,13 +96,14 @@ def fit_dist(obj, tf_iter, newton_iter, batch_sz = None):
     STEPS = np.max((n_batches // obj.strategy.num_replicas_in_sync,1))
     #tf.profiler.experimental.start('../cache/tblogdir1')
     for epoch in range(tf_iter):
-        train_loss = train_epoch(obj, obj.train_dist_dataset, STEPS)
+        train_loss = train_epoch(obj, obj.train_dist_dataset, obj.col_weights, STEPS)
 
         if epoch % 10 == 0:
             elapsed = time.time() - start_time
             print('It: %d, Time: %.2f' % (epoch, elapsed))
             tf.print(f"total loss: {train_loss}")
             start_time = time.time()
+
     #tf.profiler.experimental.stop()
     #l-bfgs-b optimization
     print("Starting L-BFGS training")
@@ -126,22 +130,26 @@ def fit_dist(obj, tf_iter, newton_iter, batch_sz = None):
     #     #     return loss_and_flat_grad
 
 @tf.function
-def train_epoch(obj, dataset, STEPS):
+def train_epoch(obj, dataset, col_weights, STEPS):
     total_loss = 0.0
     num_batches = 0.0
+    #dist_col_weights = iter(col_weights)
     dist_dataset_iterator = iter(dataset)
     for _ in range(STEPS):
-        total_loss += distributed_train_step(obj, next(dist_dataset_iterator))
+        total_loss += distributed_train_step(obj, next(dist_dataset_iterator), col_weights)
         num_batches += 1
     train_loss = total_loss / num_batches
     return train_loss
 
-def train_step(obj, inputs):
+@tf.function
+def train_step(obj, inputs, col_weights):
     obj.dist_x_f, obj.dist_t_f = inputs
+    obj.dist_col_weights = col_weights
+
     if obj.isAdaptive:
         loss_value, mse_0, mse_b, mse_f, grads, grads_col, grads_u = obj.adaptgrad()
         obj.tf_optimizer.apply_gradients(zip(grads, obj.u_model.trainable_variables))
-        obj.tf_optimizer_weights.apply_gradients(zip([-grads_col, -grads_u], [obj.col_weights, obj.u_weights]))
+        obj.tf_optimizer_weights.apply_gradients(zip([-grads_u, -grads_col], [obj.u_weights, obj.dist_col_weights]))
     else:
         print("non-adaptive")
         loss_value, mse_0, mse_b, mse_f, grads = obj.grad()
@@ -149,7 +157,7 @@ def train_step(obj, inputs):
     return loss_value
 
 @tf.function
-def distributed_train_step(obj, dataset_inputs):
-    per_replica_losses = obj.strategy.run(train_step, args=(obj, dataset_inputs,))
+def distributed_train_step(obj, dataset_inputs, col_weights):
+    per_replica_losses = obj.strategy.run(train_step, args=(obj, dataset_inputs, col_weights))
     return obj.strategy.reduce(tf.distribute.ReduceOp.SUM, per_replica_losses,
                          axis=None)

@@ -81,6 +81,8 @@ class CollocationSolver1D:
 
         if self.g is not None:
             mse_f_u = g_MSE(f_u_pred, constant(0.0), self.g(self.col_weights))
+            if self.dist:
+                mse_f_u = g_MSE(f_u_pred, constant(0.0), self.g(self.dist_col_weights))
         else:
             mse_f_u = MSE(f_u_pred, constant(0.0))
 
@@ -96,7 +98,13 @@ class CollocationSolver1D:
         with tf.GradientTape(persistent=True) as tape:
             loss_value, mse_0, mse_b, mse_f = self.loss()
             grads = tape.gradient(loss_value, self.u_model.trainable_variables)
-            grads_col = tape.gradient(loss_value, self.col_weights)
+
+            if self.dist:
+                grads_col = tape.gradient(loss_value, self.dist_col_weights)
+                print(grads_col)
+            else:
+                grads_col = tape.gradient(loss_value, self.col_weights)
+
             grads_u = tape.gradient(loss_value, self.u_weights)
             del tape
         return loss_value, mse_0, mse_b, mse_f, grads, grads_col, grads_u

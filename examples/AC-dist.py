@@ -3,8 +3,8 @@ import os
 import tensorflow as tf
 import scipy.io
 import tensordiffeq as tdq
+import matplotlib.pyplot as plt
 from tensordiffeq.models import CollocationSolver1D
-os.environ["TF_GPU_THREAD_MODE"] = "gpu_private"
 
 def f_model(u_model, x, t):
     u = u_model(tf.concat([x,t],1))
@@ -27,7 +27,7 @@ NS = 200
 N_b = 100
 N_f = 20000
 
-col_weights = tf.Variable(tf.random.uniform([N_f, 1]))
+col_weights = tf.random.uniform([N_f, 1])
 u_weights = tf.Variable(100*tf.random.uniform([N0, 1]))
 
 # Grab collocation points using latin hpyercube sampling
@@ -89,10 +89,11 @@ model = CollocationSolver1D()
 def g(lam):
     return lam**2
 
-#model.compile(layer_sizes, f_model, x_f, t_f, x0, t0, u0, x_lb, t_lb, x_ub, t_ub, isPeriodic=True, u_x_model=u_x_model, isAdaptive = True, col_weights = col_weights, u_weights = u_weights, g = g, dist = True)
-model.compile(layer_sizes, f_model, x_f, t_f, x0, t0, u0, x_lb, t_lb, x_ub, t_ub, isPeriodic=True, u_x_model=u_x_model, dist = True)
+model.compile(layer_sizes, f_model, x_f, t_f, x0, t0, u0, x_lb, t_lb, x_ub, t_ub, isPeriodic=True, u_x_model=u_x_model, isAdaptive = True, col_weights = col_weights, u_weights = u_weights, g = g, dist = True)
+#model.compile(layer_sizes, f_model, x_f, t_f, x0, t0, u0, x_lb, t_lb, x_ub, t_ub, isPeriodic=True, u_x_model=u_x_model, dist = True)
 #train loop
-model.fit(tf_iter = 5000, newton_iter = 5000)
+init = model.col_weights
+model.fit(tf_iter = 3000, newton_iter = 5000)
 
 #generate meshgrid for forward pass of u_pred
 X, T = np.meshgrid(x,t)
@@ -106,12 +107,24 @@ error_u = tdq.find_L2_error(u_pred, u_star)
 print('Error u: %e' % (error_u))
 
 U_pred = tdq.get_griddata(X_star, u_pred.flatten(), (X,T))
+
 FU_pred = tdq.get_griddata(X_star, f_u_pred.flatten(), (X,T))
 
 lb = np.array([-1.0, 0.0])
 ub = np.array([1.0, 1])
 
+# print(np.shape(init))
+# print(np.shape(model.col_weights))
+# plt.scatter(x_f, t_f, c = ((init - model.col_weights)/200))
+# print(np.mean(init - model.col_weights))
+# plt.show()
+
+
 tdq.plotting.plot_solution_domain1D(model, [x, t],  ub = ub, lb = lb, Exact_u=Exact_u)
+
+tdq.plotting.plot_weights(model)
+
+tdq.plotting.plot_glam_values(model)
 
 extent = [0.0, 1.0, -1.0, 1.0]
 tdq.plotting.plot_residuals(FU_pred, extent)
