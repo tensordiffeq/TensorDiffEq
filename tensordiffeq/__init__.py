@@ -14,6 +14,6 @@ __all__ = [
     "networks",
     "plotting",
     "utils",
-    "helpers"
+    "helpers",
     "optimizers"
 ]
