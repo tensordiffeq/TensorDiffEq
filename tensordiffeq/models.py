@@ -61,6 +61,7 @@ class CollocationSolver1D:
         self.data_t = t
         self.data_s = y
 
+    @tf.function
     def loss(self):
         if self.dist:
             f_u_pred = self.f_model(self.u_model, self.dist_x_f, self.dist_t_f)
@@ -102,7 +103,6 @@ class CollocationSolver1D:
 
             if self.dist:
                 grads_col = tape.gradient(loss_value, self.dist_col_weights)
-                print(grads_col)
             else:
                 grads_col = tape.gradient(loss_value, self.col_weights)
 
@@ -116,6 +116,7 @@ class CollocationSolver1D:
             grads = tape.gradient(loss_value, self.u_model.trainable_variables)
             del tape
         return loss_value, mse_0, mse_b, mse_f, grads
+
 
     def fit(self, tf_iter, newton_iter, batch_sz = None):
         if self.dist:

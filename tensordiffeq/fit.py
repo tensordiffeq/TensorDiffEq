@@ -31,47 +31,40 @@ def fit(obj, tf_iter, newton_iter, batch_sz = None):
     obj.adaptgrad = tf.function(obj.adaptgrad)
     obj.grad = tf.function(obj.grad)
     print("starting Adam training")
-
+    tf.profiler.experimental.start('../cache/tblogdir1')
     for epoch in range(tf_iter):
         if obj.isAdaptive:
             loss_value, mse_0, mse_b, mse_f, grads, grads_col, grads_u = train_op(obj, n_batches)
         else:
             loss_value, mse_0, mse_b, mse_f, grads = train_op(obj, n_batches)
 
-        if epoch % 10 == 0:
+        if epoch % 100 == 0:
             elapsed = time.time() - start_time
             print('It: %d, Time: %.2f' % (epoch, elapsed))
             tf.print(f"mse_0: {mse_0}  mse_b  {mse_b}  mse_f: {mse_f}   total loss: {loss_value}")
             start_time = time.time()
-        #if epoch == 0:
-            #tf.profiler.experimental.start('../cache/tblogdir1')
-    #tf.profiler.experimental.stop()
+    tf.profiler.experimental.stop()
     #l-bfgs-b optimization
     print("Starting L-BFGS training")
-    lbfgs_op(obj, newton_iter)
+    #tf.profiler.experimental.start('../cache/tblogdir1')
+    lbfgs_train(obj, newton_iter)
+    #tf.profiler.experimental.stop()
 
 
-    # loss_and_flat_grad = obj.get_loss_and_flat_grad()
-    # tf.profiler.experimental.start('../cache/tblogdir1')
-    # lbfgs(loss_and_flat_grad,
-    #     get_weights(obj.u_model),
-    #     Struct(), maxIter=newton_iter, learningRate=0.8)
-    # tf.profiler.experimental.stop()
-
-@tf.function
-def lbfgs_op(obj, newton_iter):
+#@tf.function
+def lbfgs_train(obj, newton_iter):
     func = graph_lbfgs(obj.u_model, obj.loss)
 
-    # convert initial model parameters to a 1D tf.Tensor
     init_params = tf.dynamic_stitch(func.idx, obj.u_model.trainable_variables)
-    tf.profiler.experimental.start('../cache/tblogdir1')
-    # train the model with L-BFGS solver
+
+    lbfgs_op(func, init_params, newton_iter)
+
+@tf.function
+def lbfgs_op(func, init_params, newton_iter):
     results = tfp.optimizer.lbfgs_minimize(
         value_and_gradients_function=func, initial_position=init_params, max_iterations=newton_iter)
-    tf.profiler.experimental.stop()
-    # after training, the final optimized parameters are still in results.position
-    # so we have to manually put them back to the model
-    func.assign_new_model_parameters(results.position)
+    return results
+
 
 @tf.function
 def train_op(obj, n_batches):
@@ -105,10 +98,10 @@ def fit_dist(obj, tf_iter, newton_iter, batch_sz = None):
     GLOBAL_BATCH_SIZE = BATCH_SIZE_PER_REPLICA * obj.strategy.num_replicas_in_sync
 
     train_dataset = tf.data.Dataset.from_tensor_slices((obj.x_f, obj.t_f)).batch(GLOBAL_BATCH_SIZE)
-    col_weights = tf.data.Dataset.from_tensor_slices((obj.col_weights)).batch(GLOBAL_BATCH_SIZE)
-    print(GLOBAL_BATCH_SIZE)
+    #col_weights = tf.data.Dataset.from_tensor_slices((obj.col_weights)).batch(GLOBAL_BATCH_SIZE)
+    #print(GLOBAL_BATCH_SIZE)
     obj.train_dist_dataset = obj.strategy.experimental_distribute_dataset(train_dataset)
-    col_weights = obj.strategy.experimental_distribute_dataset(col_weights)
+    #col_weights = obj.strategy.experimental_distribute_dataset(col_weights)
 
     start_time = time.time()
 
@@ -125,7 +118,7 @@ def fit_dist(obj, tf_iter, newton_iter, batch_sz = None):
 
     print("starting Adam training")
     STEPS = np.max((n_batches // obj.strategy.num_replicas_in_sync,1))
-    #tf.profiler.experimental.start('../cache/tblogdir1')
+    tf.profiler.experimental.start('../cache/tblogdir1')
     for epoch in range(tf_iter):
         train_loss = train_epoch(obj, obj.train_dist_dataset, obj.col_weights, STEPS)
 
@@ -135,30 +128,27 @@ def fit_dist(obj, tf_iter, newton_iter, batch_sz = None):
             tf.print(f"total loss: {train_loss}")
             start_time = time.time()
 
-    #tf.profiler.experimental.stop()
+    tf.profiler.experimental.stop()
     #l-bfgs-b optimization
     print("Starting L-BFGS training")
+    lbfgs_train(obj, newton_iter)
+    #tf.profiler.experimental.stop()
 
-    # with obj.strategy.scope():
-    #     loss_and_flat_grad = obj.get_loss_and_flat_grad()
-    #
-    #     obj.strategy.experimental_distribute_values_from_function(lbfgs(loss_and_flat_grad,
-    #         get_weights(obj.u_model),
-    #         Struct(), maxIter=newton_iter, learningRate=0.8))
-    #     # def get_loss_and_flat_grad(obj):
-    #     #     def loss_and_flat_grad(w):
-    #     #         with tf.GradientTape() as tape:
-    #     #             set_weights(obj.u_model, w, obj.sizes_w, obj.sizes_b)
-    #     #             loss_value, _, _, _ = obj.loss()
-    #     #         grad = tape.gradient(loss_value, obj.u_model.trainable_variables)
-    #     #         grad_flat = []
-    #     #         for g in grad:
-    #     #             grad_flat.append(tf.reshape(g, [-1]))
-    #     #         grad_flat = tf.concat(grad_flat, 0)
-    #     #         #print(loss_value, grad_flat)
-    #     #         return loss_value, grad_flat
-    #     #
-    #     #     return loss_and_flat_grad
+
+#@tf.function
+def lbfgs_train(obj, newton_iter):
+    func = graph_lbfgs(obj.u_model, obj.loss)
+
+    init_params = tf.dynamic_stitch(func.idx, obj.u_model.trainable_variables)
+
+    lbfgs_op(func, init_params, newton_iter)
+
+@tf.function
+def lbfgs_op(func, init_params, newton_iter):
+    results = tfp.optimizer.lbfgs_minimize(
+        value_and_gradients_function=func, initial_position=init_params, max_iterations=newton_iter)
+    return results
+
 
 @tf.function
 def train_epoch(obj, dataset, col_weights, STEPS):

@@ -4,6 +4,7 @@ import numpy
 import tensorflow as tf
 import tensorflow_probability as tfp
 from matplotlib import pyplot
+import time
 
 def graph_lbfgs(model, loss):
     """A factory to create a function required by tfp.optimizer.lbfgs_minimize.
@@ -26,12 +27,12 @@ def graph_lbfgs(model, loss):
     part = [] # partition indices
 
     for i, shape in enumerate(shapes):
-        n = tf.math.reduce_prod(shape, keepdims = True)
+        n = numpy.product(shape)
         idx.append(tf.reshape(tf.range(count, count+n, dtype=tf.int32), shape))
-        part = tf.concat((part,([i]*n)),0)
+        part.extend([i]*n)
         count += n
 
-    #part = tf.constant(part)
+    part = tf.constant(part)
 
     @tf.function
     def assign_new_model_parameters(params_1d):
@@ -54,7 +55,6 @@ def graph_lbfgs(model, loss):
         Returns:
             A scalar loss and the gradients w.r.t. the `params_1d`.
         """
-
         # use GradientTape so that we can calculate the gradient of loss w.r.t. parameters
         with tf.GradientTape() as tape:
             # update the parameters in the model
@@ -67,9 +67,9 @@ def graph_lbfgs(model, loss):
         grads = tf.dynamic_stitch(idx, grads)
 
         # print out iteration & loss
-        f.iter += 1
-        if f.iter % 10 == 0:
-            tf.print("Iter:", f.iter, "loss:", loss_value)
+        f.iter.assign_add(1)
+        if f.iter % 30 == 0:
+            tf.print("Iter:", f.iter//3, "loss:", loss_value)
 
         # store loss value so we can retrieve later
         tf.py_function(f.history.append, inp=[loss_value], Tout=[])
@@ -77,7 +77,7 @@ def graph_lbfgs(model, loss):
         return loss_value, grads
 
     # store these information as members so we can use them outside the scope
-    f.iter = 0
+    f.iter = tf.Variable(0)
     f.idx = idx
     f.part = part
     f.shapes = shapes

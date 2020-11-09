@@ -2,4 +2,5 @@ matplotlib
 numpy
 scipy
 tensorflow
+tensorflow_probability
 smt
