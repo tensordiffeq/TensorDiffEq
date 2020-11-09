@@ -5,13 +5,11 @@ import tensorflow as tf
 import tensorflow_probability as tfp
 from matplotlib import pyplot
 
-def graph_lbfgs(model, loss, train_x, train_y):
+def graph_lbfgs(model, loss):
     """A factory to create a function required by tfp.optimizer.lbfgs_minimize.
     Args:
         model [in]: an instance of `tf.keras.Model` or its subclasses.
         loss [in]: a function with signature loss_value = loss(pred_y, true_y).
-        train_x [in]: the input part of training data.
-        train_y [in]: the output part of training data.
     Returns:
         A function that has a signature of:
             loss_value, gradients = f(model_parameters).
@@ -28,12 +26,12 @@ def graph_lbfgs(model, loss, train_x, train_y):
     part = [] # partition indices
 
     for i, shape in enumerate(shapes):
-        n = numpy.product(shape)
+        n = tf.math.reduce_prod(shape, keepdims = True)
         idx.append(tf.reshape(tf.range(count, count+n, dtype=tf.int32), shape))
-        part.extend([i]*n)
+        part = tf.concat((part,([i]*n)),0)
         count += n
 
-    part = tf.constant(part)
+    #part = tf.constant(part)
 
     @tf.function
     def assign_new_model_parameters(params_1d):
@@ -62,15 +60,16 @@ def graph_lbfgs(model, loss, train_x, train_y):
             # update the parameters in the model
             assign_new_model_parameters(params_1d)
             # calculate the loss
-            loss_value = loss(model(train_x, training=True), train_y)
+            loss_value = loss()[0]
 
         # calculate gradients and convert to 1D tf.Tensor
         grads = tape.gradient(loss_value, model.trainable_variables)
         grads = tf.dynamic_stitch(idx, grads)
 
         # print out iteration & loss
-        f.iter.assign_add(1)
-        tf.print("Iter:", f.iter, "loss:", loss_value)
+        f.iter += 1
+        if f.iter % 10 == 0:
+            tf.print("Iter:", f.iter, "loss:", loss_value)
 
         # store loss value so we can retrieve later
         tf.py_function(f.history.append, inp=[loss_value], Tout=[])
@@ -78,7 +77,7 @@ def graph_lbfgs(model, loss, train_x, train_y):
         return loss_value, grads
 
     # store these information as members so we can use them outside the scope
-    f.iter = tf.Variable(0)
+    f.iter = 0
     f.idx = idx
     f.part = part
     f.shapes = shapes

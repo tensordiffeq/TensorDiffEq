@@ -6,6 +6,7 @@ from .utils import *
 from .optimizers import *
 import time
 import os
+
 os.environ["TF_GPU_THREAD_MODE"] = "gpu_private"
 
 
@@ -26,8 +27,8 @@ def fit(obj, tf_iter, newton_iter, batch_sz = None):
     obj.tf_optimizer_weights = tf.keras.optimizers.Adam(lr = 0.005, beta_1=.99)
 
     #these cant be tf.functions on initialization since the distributed strategy requires its own
-    #graph using grad and adaptgrad
-    obj.adaptgraad = tf.function(obj.adaptgrad)
+    #graph using grad and adaptgrad, so they cant be compiled as tf.functions until we know dist/non-dist
+    obj.adaptgrad = tf.function(obj.adaptgrad)
     obj.grad = tf.function(obj.grad)
     print("starting Adam training")
 
@@ -47,13 +48,30 @@ def fit(obj, tf_iter, newton_iter, batch_sz = None):
     #tf.profiler.experimental.stop()
     #l-bfgs-b optimization
     print("Starting L-BFGS training")
+    lbfgs_op(obj, newton_iter)
 
-    loss_and_flat_grad = obj.get_loss_and_flat_grad()
+
+    # loss_and_flat_grad = obj.get_loss_and_flat_grad()
+    # tf.profiler.experimental.start('../cache/tblogdir1')
+    # lbfgs(loss_and_flat_grad,
+    #     get_weights(obj.u_model),
+    #     Struct(), maxIter=newton_iter, learningRate=0.8)
+    # tf.profiler.experimental.stop()
+
+@tf.function
+def lbfgs_op(obj, newton_iter):
+    func = graph_lbfgs(obj.u_model, obj.loss)
+
+    # convert initial model parameters to a 1D tf.Tensor
+    init_params = tf.dynamic_stitch(func.idx, obj.u_model.trainable_variables)
     tf.profiler.experimental.start('../cache/tblogdir1')
-    lbfgs(loss_and_flat_grad,
-        get_weights(obj.u_model),
-        Struct(), maxIter=newton_iter, learningRate=0.8)
+    # train the model with L-BFGS solver
+    results = tfp.optimizer.lbfgs_minimize(
+        value_and_gradients_function=func, initial_position=init_params, max_iterations=newton_iter)
     tf.profiler.experimental.stop()
+    # after training, the final optimized parameters are still in results.position
+    # so we have to manually put them back to the model
+    func.assign_new_model_parameters(results.position)
 
 @tf.function
 def train_op(obj, n_batches):
