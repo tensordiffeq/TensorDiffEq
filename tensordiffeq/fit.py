@@ -48,10 +48,11 @@ def fit(obj, tf_iter, newton_iter, batch_sz = None):
     print("Starting L-BFGS training")
 
     loss_and_flat_grad = obj.get_loss_and_flat_grad()
-
+    tf.profiler.experimental.start('../cache/tblogdir1')
     lbfgs(loss_and_flat_grad,
-      get_weights(obj.u_model),
-      Struct(), maxIter=newton_iter, learningRate=0.8)
+        get_weights(obj.u_model),
+        Struct(), maxIter=newton_iter, learningRate=0.8)
+    tf.profiler.experimental.stop()
 
 @tf.function
 def train_op(obj, n_batches):

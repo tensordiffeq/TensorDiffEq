@@ -80,9 +80,11 @@ class CollocationSolver1D:
         mse_0_u = MSE(u0_pred, self.u0, self.u_weights)
 
         if self.g is not None:
-            mse_f_u = g_MSE(f_u_pred, constant(0.0), self.g(self.col_weights))
             if self.dist:
                 mse_f_u = g_MSE(f_u_pred, constant(0.0), self.g(self.dist_col_weights))
+            else:
+                mse_f_u = g_MSE(f_u_pred, constant(0.0), self.g(self.col_weights))
+
         else:
             mse_f_u = MSE(f_u_pred, constant(0.0))
 
@@ -92,7 +94,6 @@ class CollocationSolver1D:
             return mse_0_u + mse_b_u + mse_f_u + mse_s_u, mse_0_u, mse_b_u, mse_f_u
         else:
             return mse_0_u + mse_b_u + mse_f_u, mse_0_u, mse_b_u, mse_f_u
-
 
     def adaptgrad(self):
         with tf.GradientTape(persistent=True) as tape:
