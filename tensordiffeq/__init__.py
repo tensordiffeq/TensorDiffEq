@@ -15,4 +15,5 @@ __all__ = [
     "plotting",
     "utils",
     "helpers"
+    "optimizers"
 ]

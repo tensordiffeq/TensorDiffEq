@@ -3,6 +3,7 @@ import numpy as np
 from .networks import *
 from .models import *
 from .utils import *
+from .optimizers import *
 import time
 import os
 os.environ["TF_GPU_THREAD_MODE"] = "gpu_private"
