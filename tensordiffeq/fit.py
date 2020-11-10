@@ -28,15 +28,14 @@ def fit(obj, tf_iter, newton_iter, batch_sz = None):
 
     #these cant be tf.functions on initialization since the distributed strategy requires its own
     #graph using grad and adaptgrad, so they cant be compiled as tf.functions until we know dist/non-dist
-    obj.adaptgrad = tf.function(obj.adaptgrad)
     obj.grad = tf.function(obj.grad)
     print("starting Adam training")
     tf.profiler.experimental.start('../cache/tblogdir1')
     for epoch in range(tf_iter):
-        if obj.isAdaptive:
-            loss_value, mse_0, mse_b, mse_f, grads, grads_col, grads_u = train_op(obj, n_batches)
-        else:
-            loss_value, mse_0, mse_b, mse_f, grads = train_op(obj, n_batches)
+        # if obj.isAdaptive:
+        #     loss_value, mse_0, mse_b, mse_f, grads, grads_col, grads_u = train_op(obj, n_batches)
+        # else:
+        loss_value, mse_0, mse_b, mse_f= train_op(obj, n_batches)
 
         if epoch % 100 == 0:
             elapsed = time.time() - start_time
@@ -70,14 +69,17 @@ def lbfgs_op(func, init_params, newton_iter):
 def train_op(obj, n_batches):
     for i in range(n_batches):
         if obj.isAdaptive:
-            loss_value, mse_0, mse_b, mse_f, grads, grads_col, grads_u = obj.adaptgrad()
-            obj.tf_optimizer.apply_gradients(zip(grads, obj.u_model.trainable_variables))
-            obj.tf_optimizer_weights.apply_gradients(zip([-grads_col, -grads_u], [obj.col_weights, obj.u_weights]))
-            return loss_value, mse_0, mse_b, mse_f, grads, grads_col, grads_u
+            #unstack = tf.unstack(obj.u_model.trainable_variables, axis = 2)
+            obj.variables = obj.u_model.trainable_variables
+            obj.variables.extend([obj.u_weights, obj.col_weights])
+            loss_value, mse_0, mse_b, mse_f, grads = obj.grad()
+            obj.tf_optimizer.apply_gradients(zip(grads[:-2], obj.u_model.trainable_variables))
+            obj.tf_optimizer_weights.apply_gradients(zip([-grads[-2], -grads[-1]], [obj.u_weights, obj.col_weights]))
         else:
+            obj.variables = obj.u_model.trainable_variables
             loss_value, mse_0, mse_b, mse_f, grads = obj.grad()
             obj.tf_optimizer.apply_gradients(zip(grads, obj.u_model.trainable_variables))
-            return loss_value, mse_0, mse_b, mse_f, grads
+        return loss_value, mse_0, mse_b, mse_f
 
 def fit_dist(obj, tf_iter, newton_iter, batch_sz = None):
 
@@ -134,7 +136,7 @@ def fit_dist(obj, tf_iter, newton_iter, batch_sz = None):
     lbfgs_train(obj, newton_iter)
     #tf.profiler.experimental.stop()
 
-# 
+#
 # #@tf.function
 # def lbfgs_train(obj, newton_iter):
 #     func = graph_lbfgs(obj.u_model, obj.loss)
@@ -168,6 +170,8 @@ def train_step(obj, inputs, col_weights):
     obj.dist_col_weights = col_weights
 
     if obj.isAdaptive:
+        unstack = tf.unstack(obj.u_model.trainable_variables)
+        obj.grads_all = tf.stack([unstack, obj.u_weights, obj.dist_col_weights], 0)
         loss_value, mse_0, mse_b, mse_f, grads, grads_col, grads_u = obj.adaptgrad()
         obj.tf_optimizer.apply_gradients(zip(grads, obj.u_model.trainable_variables))
         obj.tf_optimizer_weights.apply_gradients(zip([-grads_u, -grads_col], [obj.u_weights, obj.dist_col_weights]))

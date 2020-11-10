@@ -96,25 +96,10 @@ class CollocationSolver1D:
         else:
             return mse_0_u + mse_b_u + mse_f_u, mse_0_u, mse_b_u, mse_f_u
 
-    def adaptgrad(self):
-        with tf.GradientTape(persistent=True) as tape:
-            loss_value, mse_0, mse_b, mse_f = self.loss()
-            grads = tape.gradient(loss_value, self.u_model.trainable_variables)
-
-            if self.dist:
-                grads_col = tape.gradient(loss_value, self.dist_col_weights)
-            else:
-                grads_col = tape.gradient(loss_value, self.col_weights)
-
-            grads_u = tape.gradient(loss_value, self.u_weights)
-            del tape
-        return loss_value, mse_0, mse_b, mse_f, grads, grads_col, grads_u
-
     def grad(self):
         with tf.GradientTape() as tape:
             loss_value, mse_0, mse_b, mse_f = self.loss()
-            grads = tape.gradient(loss_value, self.u_model.trainable_variables)
-            del tape
+            grads = tape.gradient(loss_value, self.variables)
         return loss_value, mse_0, mse_b, mse_f, grads
 
 
