@@ -156,7 +156,7 @@ class CollocationSolver1D:
 class CollocationSolver2D(CollocationSolver1D):
 
     def compile(self, layer_sizes, f_model, x_f, y_f, t_f, x0, t0, u0, x_lb, y_lb, t_lb, x_ub, y_ub, t_ub, isPeriodic = False, u_x_model = None, isAdaptive = False, col_weights = None, u_weights = None, g = None):
-        CollocationSolver1D.compile(self, layer_sizes, f_model, x_f, t_f, x0, t0, u0, x_lb, t_lb, x_ub, t_ub, isPeriodic, u_x_model, isAdaptive, col_weights, u_weights, g)
+        CollocationSolver1D.compile(layer_sizes, f_model, x_f, t_f, x0, t0, u0, x_lb, t_lb, x_ub, t_ub, isPeriodic, u_x_model, isAdaptive, col_weights, u_weights, g)
         self.y_lb = y_lb
         self.y_ub = y_ub
         self.y_f = y_f
@@ -178,3 +178,56 @@ class CollocationSolver2D(CollocationSolver1D):
             mse_f_u = MSE(f_u_pred, constant(0.0))
 
         return  mse_0_u + mse_b_u + mse_f_u , mse_0_u, mse_b_u, mse_f_u
+
+
+class DiscoveryModel():
+    def compile(self, layer_sizes, f_model, X, u, vars):
+        self.layer_sizes = layer_sizes
+        self.f_model = f_model
+        self.X = X
+        self.x = X[:,0:1]
+        self.t = X[:,1:2]
+        self.u = u
+        self.vars = vars
+        self.u_model = neural_net(self.layer_sizes)
+        self.tf_optimizer = tf.keras.optimizers.Adam(lr = 0.005, beta_1=.99)
+        self.tf_optimizer_vars = tf.keras.optimizers.Adam(lr = 0.005, beta_1=.99)
+        print(self.x)
+
+    def loss(self):
+        u_pred = self.u_model(self.X)
+        f_u_pred, self.vars = self.f_model(self.u_model, self.x, self.t, self.vars)
+
+        return MSE(u_pred, self.u) + MSE(f_u_pred, constant(0.0))
+
+    def fit(self, tf_iter):
+        self.train_loop(tf_iter)
+
+    @tf.function
+    def grad(self):
+        with tf.GradientTape(persistent = True) as tape:
+            loss_value = self.loss()
+            grads = tape.gradient(loss_value, self.u_model.trainable_variables)
+            var_grads = tape.gradient(loss_value, self.vars)
+            del tape
+        return loss_value, grads, var_grads
+
+    @tf.function
+    def train_op(self):
+        loss_value, grads_model, grads_vars = self.grad()
+        self.tf_optimizer.apply_gradients(zip(grads_model, self.u_model.trainable_variables))
+        self.tf_optimizer_vars.apply_gradients(zip(grads_vars, self.vars))
+        return loss_value
+
+
+    def train_loop(self, tf_iter):
+        start_time = time.time()
+        for i in range(tf_iter):
+            loss_value = self.train_op()
+            if i % 100 == 0:
+                elapsed = time.time() - start_time
+                print('It: %d, Time: %.2f' % (i, elapsed))
+                tf.print(f"total loss: {loss_value}")
+                var = [var.numpy() for var in self.vars]
+                print("vars estimate(s):", var)
+                start_time = time.time()
