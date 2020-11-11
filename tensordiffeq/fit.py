@@ -30,7 +30,7 @@ def fit(obj, tf_iter, newton_iter, batch_sz = None):
     #graph using grad and adaptgrad, so they cant be compiled as tf.functions until we know dist/non-dist
     obj.grad = tf.function(obj.grad)
     print("starting Adam training")
-    tf.profiler.experimental.start('../cache/tblogdir1')
+    #tf.profiler.experimental.start('../cache/tblogdir1')
     for epoch in range(tf_iter):
         # if obj.isAdaptive:
         #     loss_value, mse_0, mse_b, mse_f, grads, grads_col, grads_u = train_op(obj, n_batches)
@@ -42,7 +42,7 @@ def fit(obj, tf_iter, newton_iter, batch_sz = None):
             print('It: %d, Time: %.2f' % (epoch, elapsed))
             tf.print(f"mse_0: {mse_0}  mse_b  {mse_b}  mse_f: {mse_f}   total loss: {loss_value}")
             start_time = time.time()
-    tf.profiler.experimental.stop()
+    #tf.profiler.experimental.stop()
     #l-bfgs-b optimization
     print("Starting L-BFGS training")
     #tf.profiler.experimental.start('../cache/tblogdir1')
