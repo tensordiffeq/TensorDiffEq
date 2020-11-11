@@ -136,21 +136,6 @@ def fit_dist(obj, tf_iter, newton_iter, batch_sz = None):
     lbfgs_train(obj, newton_iter)
     #tf.profiler.experimental.stop()
 
-#
-# #@tf.function
-# def lbfgs_train(obj, newton_iter):
-#     func = graph_lbfgs(obj.u_model, obj.loss)
-#
-#     init_params = tf.dynamic_stitch(func.idx, obj.u_model.trainable_variables)
-#
-#     lbfgs_op(func, init_params, newton_iter)
-#
-# @tf.function
-# def lbfgs_op(func, init_params, newton_iter):
-#     results = tfp.optimizer.lbfgs_minimize(
-#         value_and_gradients_function=func, initial_position=init_params, max_iterations=newton_iter)
-#     return results
-
 
 @tf.function
 def train_epoch(obj, dataset, col_weights, STEPS):
