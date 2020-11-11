@@ -61,7 +61,7 @@ def lbfgs_train(obj, newton_iter):
 @tf.function
 def lbfgs_op(func, init_params, newton_iter):
     results = tfp.optimizer.lbfgs_minimize(
-        value_and_gradients_function=func, initial_position=init_params, max_iterations=newton_iter, tolerance = 1e-23)
+        value_and_gradients_function=func, initial_position=init_params, max_iterations=newton_iter, tolerance = 1e-20)
 
     return results
 
