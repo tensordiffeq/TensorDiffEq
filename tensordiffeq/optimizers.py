@@ -70,7 +70,7 @@ def graph_lbfgs(model, loss):
         # print out iteration & loss
         f.iter.assign_add(1)
 
-        if f.iter % 30 == 0:
+        if f.iter % 300 == 0:
 
             elapsed = tf.timestamp() - f.start_time
 
