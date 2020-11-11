@@ -25,6 +25,7 @@ def graph_lbfgs(model, loss):
     count = 0
     idx = [] # stitch indices
     part = [] # partition indices
+    start_time = time.time()
 
     for i, shape in enumerate(shapes):
         n = numpy.product(shape)
@@ -68,8 +69,13 @@ def graph_lbfgs(model, loss):
 
         # print out iteration & loss
         f.iter.assign_add(1)
+
         if f.iter % 30 == 0:
-            tf.print("Iter:", f.iter//3, "loss:", loss_value)
+
+            elapsed = tf.timestamp() - f.start_time
+
+            tf.print("Iter:", f.iter // 3, "loss:", loss_value, "time:", elapsed)
+            f.start_time.assign(tf.timestamp())
 
         # store loss value so we can retrieve later
         tf.py_function(f.history.append, inp=[loss_value], Tout=[])
@@ -83,5 +89,7 @@ def graph_lbfgs(model, loss):
     f.shapes = shapes
     f.assign_new_model_parameters = assign_new_model_parameters
     f.history = []
+    f.start_time = tf.Variable(tf.timestamp())
+
 
     return f

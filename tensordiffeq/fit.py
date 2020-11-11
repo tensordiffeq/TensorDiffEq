@@ -35,7 +35,7 @@ def fit(obj, tf_iter, newton_iter, batch_sz = None):
         # if obj.isAdaptive:
         #     loss_value, mse_0, mse_b, mse_f, grads, grads_col, grads_u = train_op(obj, n_batches)
         # else:
-        loss_value, mse_0, mse_b, mse_f= train_op(obj, n_batches)
+        loss_value, mse_0, mse_b, mse_f = train_op(obj, n_batches)
 
         if epoch % 100 == 0:
             elapsed = time.time() - start_time
