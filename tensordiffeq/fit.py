@@ -12,7 +12,7 @@ os.environ["TF_GPU_THREAD_MODE"] = "gpu_private"
 
 
 def fit(obj, tf_iter, newton_iter, batch_sz = None):
-    obj.u_model = neural_net(obj.layer_sizes)
+    obj.u_model = _neural_net(obj.layer_sizes)
     #Can adjust batch size for collocation points, here we set it to N_f
     if batch_sz is not None:
         obj.batch_sz = batch_sz
@@ -35,7 +35,7 @@ def fit(obj, tf_iter, newton_iter, batch_sz = None):
         # if obj.isAdaptive:
         #     loss_value, mse_0, mse_b, mse_f, grads, grads_col, grads_u = train_op(obj, n_batches)
         # else:
-        loss_value, mse_0, mse_b, mse_f = train_op(obj, n_batches)
+        loss_value, mse_0, mse_b, mse_f = _train_op(obj, n_batches)
 
         if epoch % 100 == 0:
             elapsed = time.time() - start_time
@@ -46,20 +46,20 @@ def fit(obj, tf_iter, newton_iter, batch_sz = None):
     #l-bfgs-b optimization
     print("Starting L-BFGS training")
     #tf.profiler.experimental.start('../cache/tblogdir1')
-    lbfgs_train(obj, newton_iter)
+    _lbfgs_train(obj, newton_iter)
     #tf.profiler.experimental.stop()
 
 
 #@tf.function
-def lbfgs_train(obj, newton_iter):
-    func = graph_lbfgs(obj.u_model, obj.loss)
+def _lbfgs_train(obj, newton_iter):
+    func = _graph_lbfgs(obj.u_model, obj.loss)
 
     init_params = tf.dynamic_stitch(func.idx, obj.u_model.trainable_variables)
 
     lbfgs_op(func, init_params, newton_iter)
 
 @tf.function
-def lbfgs_op(func, init_params, newton_iter):
+def _lbfgs_op(func, init_params, newton_iter):
     results = tfp.optimizer.lbfgs_minimize(
         value_and_gradients_function=func, initial_position=init_params, max_iterations=newton_iter, tolerance = 1e-20)
 
@@ -67,7 +67,7 @@ def lbfgs_op(func, init_params, newton_iter):
 
 
 @tf.function
-def train_op(obj, n_batches):
+def _train_op(obj, n_batches):
     for i in range(n_batches):
         if obj.isAdaptive:
             #unstack = tf.unstack(obj.u_model.trainable_variables, axis = 2)
@@ -109,7 +109,7 @@ def fit_dist(obj, tf_iter, newton_iter, batch_sz = None):
     start_time = time.time()
 
     with obj.strategy.scope():
-        obj.u_model = neural_net(obj.layer_sizes)
+        obj.u_model = _neural_net(obj.layer_sizes)
         obj.tf_optimizer = tf.keras.optimizers.Adam(lr = 0.005, beta_1=.99)
         obj.tf_optimizer_weights = tf.keras.optimizers.Adam(lr = 0.005, beta_1=.99)
         #Can adjust batch size for collocation points, here we set it to N_f
@@ -123,7 +123,7 @@ def fit_dist(obj, tf_iter, newton_iter, batch_sz = None):
     STEPS = np.max((n_batches // obj.strategy.num_replicas_in_sync,1))
     tf.profiler.experimental.start('../cache/tblogdir1')
     for epoch in range(tf_iter):
-        train_loss = train_epoch(obj, obj.train_dist_dataset, obj.col_weights, STEPS)
+        train_loss = _train_epoch(obj, obj.train_dist_dataset, obj.col_weights, STEPS)
 
         if epoch % 10 == 0:
             elapsed = time.time() - start_time
@@ -134,41 +134,41 @@ def fit_dist(obj, tf_iter, newton_iter, batch_sz = None):
     tf.profiler.experimental.stop()
     #l-bfgs-b optimization
     print("Starting L-BFGS training")
-    lbfgs_train(obj, newton_iter)
+    _lbfgs_train(obj, newton_iter)
     #tf.profiler.experimental.stop()
 
 
 @tf.function
-def train_epoch(obj, dataset, col_weights, STEPS):
+def _train_epoch(obj, dataset, col_weights, STEPS):
     total_loss = 0.0
     num_batches = 0.0
     #dist_col_weights = iter(col_weights)
-    dist_dataset_iterator = iter(dataset)
+    _dist_dataset_iterator = iter(dataset)
     for _ in range(STEPS):
-        total_loss += distributed_train_step(obj, next(dist_dataset_iterator), col_weights)
+        total_loss += _distributed_train_step(obj, next(_dist_dataset_iterator), col_weights)
         num_batches += 1
     train_loss = total_loss / num_batches
     return train_loss
 
 @tf.function
-def train_step(obj, inputs, col_weights):
+def _train_step(obj, inputs, col_weights):
     obj.dist_x_f, obj.dist_t_f = inputs
     obj.dist_col_weights = col_weights
 
     if obj.isAdaptive:
-        unstack = tf.unstack(obj.u_model.trainable_variables)
-        obj.grads_all = tf.stack([unstack, obj.u_weights, obj.dist_col_weights], 0)
-        loss_value, mse_0, mse_b, mse_f, grads, grads_col, grads_u = obj.adaptgrad()
-        obj.tf_optimizer.apply_gradients(zip(grads, obj.u_model.trainable_variables))
-        obj.tf_optimizer_weights.apply_gradients(zip([-grads_u, -grads_col], [obj.u_weights, obj.dist_col_weights]))
+        obj.variables = obj.u_model.trainable_variables
+        obj.variables.extend([obj.u_weights, obj.col_weights])
+        loss_value, mse_0, mse_b, mse_f, grads = obj.grad()
+        obj.tf_optimizer.apply_gradients(zip(grads[:-2], obj.u_model.trainable_variables))
+        obj.tf_optimizer_weights.apply_gradients(zip([-grads[-2], -grads[-1]], [obj.u_weights, obj.dist_col_weights]))
     else:
-        print("non-adaptive")
+        obj.variables = obj.u_model.trainable_variables
         loss_value, mse_0, mse_b, mse_f, grads = obj.grad()
         obj.tf_optimizer.apply_gradients(zip(grads, obj.u_model.trainable_variables))
-    return loss_value
+    return loss_value, mse_0, mse_b, mse_f
 
 @tf.function
-def distributed_train_step(obj, dataset_inputs, col_weights):
+def _distributed_train_step(obj, dataset_inputs, col_weights):
     per_replica_losses = obj.strategy.run(train_step, args=(obj, dataset_inputs, col_weights))
     return obj.strategy.reduce(tf.distribute.ReduceOp.SUM, per_replica_losses,
                          axis=None)
