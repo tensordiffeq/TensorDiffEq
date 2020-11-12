@@ -103,11 +103,11 @@ class CollocationSolver1D:
         return loss_value, mse_0, mse_b, mse_f, grads
 
 
-    def fit(self, tf_iter, newton_iter, batch_sz = None):
+    def fit(self, tf_iter, newton_iter, batch_sz = None, newton_eager = True):
         if self.dist:
-            fit_dist(self, tf_iter = tf_iter, newton_iter = newton_iter, batch_sz = batch_sz)
+            fit_dist(self, tf_iter = tf_iter, newton_iter = newton_iter, batch_sz = batch_sz, newton_eager = newton_eager)
         else:
-            fit(self, tf_iter = tf_iter, newton_iter = newton_iter, batch_sz = batch_sz)
+            fit(self, tf_iter = tf_iter, newton_iter = newton_iter, batch_sz = batch_sz, newton_eager = newton_eager)
 
 
     #L-BFGS implementation from https://github.com/pierremtb/PINNs-TF2.0

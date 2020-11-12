@@ -11,7 +11,7 @@ os.environ["TF_GPU_THREAD_MODE"] = "gpu_private"
 
 
 
-def fit(obj, tf_iter, newton_iter, batch_sz = None):
+def fit(obj, tf_iter, newton_iter, batch_sz = None, newton_eager = True):
     obj.u_model = neural_net(obj.layer_sizes)
     #Can adjust batch size for collocation points, here we set it to N_f
     if batch_sz is not None:
@@ -46,8 +46,20 @@ def fit(obj, tf_iter, newton_iter, batch_sz = None):
     #l-bfgs-b optimization
     print("Starting L-BFGS training")
     #tf.profiler.experimental.start('../cache/tblogdir1')
-    lbfgs_train(obj, newton_iter)
+    #
     #tf.profiler.experimental.stop()
+
+
+    if newton_eager:
+        print("Executing eager-mode L-BFGS")
+        loss_and_flat_grad = obj.get_loss_and_flat_grad()
+        eager_lbfgs(loss_and_flat_grad,
+            get_weights(obj.u_model),
+            Struct(), maxIter=newton_iter, learningRate=0.8)
+
+    else:
+        print("Executing graph-mode L-BFGS")
+        lbfgs_train(obj, newton_iter)
 
 
 #@tf.function
@@ -82,7 +94,7 @@ def train_op(obj, n_batches):
             obj.tf_optimizer.apply_gradients(zip(grads, obj.u_model.trainable_variables))
         return loss_value, mse_0, mse_b, mse_f
 
-def fit_dist(obj, tf_iter, newton_iter, batch_sz = None):
+def fit_dist(obj, tf_iter, newton_iter, batch_sz = None, newton_eager = True):
 
     BUFFER_SIZE = len(obj.x_f)
     EPOCHS = tf_iter
