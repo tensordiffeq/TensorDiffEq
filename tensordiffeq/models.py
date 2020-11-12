@@ -62,7 +62,7 @@ class CollocationSolver1D:
         self.data_s = y
 
     @tf.function
-    def loss(self):
+    def _loss(self):
         if self.dist:
             f_u_pred = self.f_model(self.u_model, self.dist_x_f, self.dist_t_f)
         else:
@@ -96,9 +96,9 @@ class CollocationSolver1D:
         else:
             return mse_0_u + mse_b_u + mse_f_u, mse_0_u, mse_b_u, mse_f_u
 
-    def grad(self):
+    def _grad(self):
         with tf.GradientTape() as tape:
-            loss_value, mse_0, mse_b, mse_f = self.loss()
+            loss_value, mse_0, mse_b, mse_f = self._loss()
             grads = tape.gradient(loss_value, self.variables)
         return loss_value, mse_0, mse_b, mse_f, grads
 
@@ -110,11 +110,12 @@ class CollocationSolver1D:
             fit(self, tf_iter = tf_iter, newton_iter = newton_iter, batch_sz = batch_sz)
 
 
-    #L-BFGS implementation from https://github.com/pierremtb/PINNs-TF2.0
-    def get_loss_and_flat_grad(self):
-        def loss_and_flat_grad(w):
+    # L-BFGS implementation from https://github.com/pierremtb/PINNs-TF2.0
+    # Eager-mode L-BFGS for tdq
+    def _get_loss_and_flat_grad(self):
+        def _loss_and_flat_grad(w):
             with tf.GradientTape() as tape:
-                set_weights(self.u_model, w, self.sizes_w, self.sizes_b)
+                _set_weights(self.u_model, w, self.sizes_w, self.sizes_b)
                 loss_value, _, _, _ = self.loss()
             grad = tape.gradient(loss_value, self.u_model.trainable_variables)
             grad_flat = []
@@ -179,40 +180,40 @@ class DiscoveryModel():
         self.tf_optimizer_vars = tf.keras.optimizers.Adam(lr = 0.005, beta_1=.99)
         print(self.x)
 
-    def loss(self):
+    def _loss(self):
         u_pred = self.u_model(self.X)
         f_u_pred, self.vars = self.f_model(self.u_model, self.x, self.t, self.vars)
 
-        return MSE(u_pred, self.u) + MSE(f_u_pred, constant(0.0))
+        return _MSE(u_pred, self.u) + _MSE(f_u_pred, constant(0.0))
 
     def fit(self, tf_iter):
-        self.train_loop(tf_iter)
+        self._train_loop(tf_iter)
 
     @tf.function
-    def grad(self):
+    def _grad(self):
         with tf.GradientTape(persistent = True) as tape:
-            loss_value = self.loss()
-            grads = tape.gradient(loss_value, self.u_model.trainable_variables)
-            var_grads = tape.gradient(loss_value, self.vars)
+            _loss_value = self._loss()
+            _grads = tape.gradient(loss_value, self.u_model.trainable_variables)
+            _var_grads = tape.gradient(loss_value, self.vars)
             del tape
-        return loss_value, grads, var_grads
+        return loss_value, _grads, _var_grads
 
     @tf.function
-    def train_op(self):
-        loss_value, grads_model, grads_vars = self.grad()
-        self.tf_optimizer.apply_gradients(zip(grads_model, self.u_model.trainable_variables))
-        self.tf_optimizer_vars.apply_gradients(zip(grads_vars, self.vars))
+    def _train_op(self):
+        _loss_value, _grads_model, _grads_vars = self.grad()
+        self.tf_optimizer.apply_gradients(zip(_grads_model, self.u_model.trainable_variables))
+        self.tf_optimizer_vars.apply_gradients(zip(_grads_vars, self.vars))
         return loss_value
 
 
-    def train_loop(self, tf_iter):
-        start_time = time.time()
+    def _train_loop(self, tf_iter):
+        _start_time = time.time()
         for i in range(tf_iter):
-            loss_value = self.train_op()
+            _loss_value = self._train_op()
             if i % 100 == 0:
-                elapsed = time.time() - start_time
-                print('It: %d, Time: %.2f' % (i, elapsed))
-                tf.print(f"total loss: {loss_value}")
+                _elapsed = time.time() - _start_time
+                print('It: %d, Time: %.2f' % (i, _elapsed))
+                tf.print(f"total loss: {_loss_value}")
                 var = [var.numpy() for var in self.vars]
                 print("vars estimate(s):", var)
-                start_time = time.time()
+                _start_time = time.time()

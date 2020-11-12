@@ -4,7 +4,7 @@ from smt.sampling_methods import LHS
 import time as time
 import numpy as np
 
-def set_weights(model, w, sizes_w, sizes_b):
+def _set_weights(model, w, sizes_w, sizes_b):
         for i, layer in enumerate(model.layers[0:]):
             start_weights = sum(sizes_w[:i]) + sum(sizes_b[:i])
             end_weights = sum(sizes_w[:i+1]) + sum(sizes_b[:i])
@@ -16,7 +16,7 @@ def set_weights(model, w, sizes_w, sizes_b):
             layer.set_weights(weights_biases)
 
 
-def get_weights(model):
+def _get_weights(model):
         w = []
         for layer in model.layers[0:]:
             weights_biases = layer.get_weights()
@@ -28,7 +28,7 @@ def get_weights(model):
         w = tf.convert_to_tensor(w)
         return w
 
-def get_sizes(layer_sizes):
+def _get_sizes(layer_sizes):
     sizes_w = []
     sizes_b = []
     for i, width in enumerate(layer_sizes):
@@ -38,12 +38,12 @@ def get_sizes(layer_sizes):
     return sizes_w, sizes_b
 
 
-def MSE(pred, actual, weights = None):
+def _MSE(pred, actual, weights = None):
     if weights is not None:
       return tf.reduce_mean(tf.square(weights*tf.math.subtract(pred,actual)))
     return tf.reduce_mean(tf.square(tf.math.subtract(pred,actual)))
 
-def g_MSE(pred, actual, g_lam):
+def _g_MSE(pred, actual, g_lam):
     return tf.reduce_mean(g_lam*tf.square(tf.math.subtract(pred,actual)))
 
 

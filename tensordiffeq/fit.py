@@ -11,7 +11,7 @@ os.environ["TF_GPU_THREAD_MODE"] = "gpu_private"
 
 
 
-def fit(obj, tf_iter, newton_iter, batch_sz = None):
+def _fit(obj, tf_iter, newton_iter, batch_sz = None):
     obj.u_model = _neural_net(obj.layer_sizes)
     #Can adjust batch size for collocation points, here we set it to N_f
     if batch_sz is not None:
@@ -82,7 +82,7 @@ def _train_op(obj, n_batches):
             obj.tf_optimizer.apply_gradients(zip(grads, obj.u_model.trainable_variables))
         return loss_value, mse_0, mse_b, mse_f
 
-def fit_dist(obj, tf_iter, newton_iter, batch_sz = None):
+def _fit_dist(obj, tf_iter, newton_iter, batch_sz = None):
 
     BUFFER_SIZE = len(obj.x_f)
     EPOCHS = tf_iter
