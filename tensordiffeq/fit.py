@@ -37,7 +37,7 @@ def fit(obj, tf_iter, newton_iter, batch_sz = None, newton_eager = True):
         # else:
         loss_value, mse_0, mse_b, mse_f = train_op(obj, n_batches)
 
-        if epoch % 10 == 0:
+        if epoch % 100 == 0:
             elapsed = time.time() - start_time
             print('It: %d, Time: %.2f' % (epoch, elapsed))
             tf.print(f"mse_0: {mse_0}  mse_b  {mse_b}  mse_f: {mse_f}   total loss: {loss_value}")
@@ -141,7 +141,7 @@ def fit_dist(obj, tf_iter, newton_iter, batch_sz = None, newton_eager = True):
             train_loss = train_epoch(obj, obj.train_dist_dataset, obj.col_weights, STEPS)
             # if epoch == 2:
             #     tf.profiler.experimental.start('../cache/tblogdir1')
-            if epoch % 10 == 0:
+            if epoch % 100 == 0:
                 elapsed = time.time() - start_time
                 print('It: %d, Time: %.2f' % (epoch, elapsed))
                 tf.print(f"total loss: {train_loss}")

@@ -25,7 +25,7 @@ def g(lam):
 
 N0 = 200
 N_b = 100
-N_f = 2000000
+N_f = 20000
 
 col_weights = tf.Variable(tf.random.uniform([N_f, 1]), trainable = True, dtype = tf.float32)
 u_weights = tf.Variable(100*tf.random.uniform([N0, 1]), trainable = True, dtype = tf.float32)
@@ -79,7 +79,7 @@ model = CollocationSolver1D()
 model.compile(layer_sizes, f_model, x_f, t_f, x0, t0, u0, x_lb, t_lb, x_ub, t_ub, isPeriodic=True, isAdaptive=True, u_x_model=u_x_model, col_weights=col_weights, u_weights=u_weights, g = g)
 
 #train loops6
-model.fit(tf_iter = 1000, newton_iter =10000, batch_sz = 1028)
+model.fit(tf_iter = 1000, newton_iter =10000)
 
 #generate meshgrid for forward pass of u_pred
 X, T = np.meshgrid(x,t)
