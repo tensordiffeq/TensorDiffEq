@@ -9,12 +9,8 @@ from .fit import *
 
 class CollocationSolver1D:
     def __init__(self, assimilate = False):
-        self.sizes_w = None
-        self.sizes_b = None
-        self.optimizer_NN = None
-        self.col_weights = None
-        self.u_weights = None
         self.assimilate = assimilate
+        self.periodicBC = False
 
 
     def compile(self, layer_sizes, f_model, x_f, t_f, x0, t0, u0, x_lb, t_lb, x_ub, t_ub, u_ub = None, u_lb = None, isPeriodic = False, u_x_model = None, isAdaptive = False, col_weights = None, u_weights = None, g = None, dist = False):
@@ -77,7 +73,7 @@ class CollocationSolver1D:
         else:
             u_lb_pred = self.u_model(tf.concat([self.x_lb, self.t_lb],1))
             u_ub_pred = self.u_model(tf.concat([self.x_ub, self.t_ub],1))
-            mse_b_u = MSE(u_lb_pred, u_lb) + MSE(u_ub_pred, u_ub)
+            mse_b_u = MSE(u_lb_pred, self.u_lb) + MSE(u_ub_pred, self.u_ub)
 
         mse_0_u = MSE(u0_pred, self.u0, self.u_weights)
 
@@ -132,8 +128,7 @@ class CollocationSolver1D:
 
     def predict(self, X_star):
         X_star = convertTensor(X_star)
-        u_star, _ = self.u_x_model(self.u_model, X_star[:,0:1],
-                         X_star[:,1:2])
+        u_star = self.u_model(X_star)
 
         f_u_star = self.f_model(self.u_model, X_star[:,0:1],
                      X_star[:,1:2])

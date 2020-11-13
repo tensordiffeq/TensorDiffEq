@@ -110,8 +110,8 @@ def eager_lbfgs(opfunc, x, state, maxIter = 100, learningRate = 1, do_verbose = 
   global final_loss, times
 
   maxEval = maxIter*1.25
-  tolFun = 1e-5
-  tolX = 1e-9
+  tolFun = 1e-12
+  tolX = 1e-12
   nCorrection = 50
   isverbose = False
   state.start_time = time.time()
@@ -271,7 +271,7 @@ def eager_lbfgs(opfunc, x, state, maxIter = 100, learningRate = 1, do_verbose = 
     if do_verbose:
       if nIter % 100 == 0:
         elapsed = time.time() - state.start_time
-        print("Step: %3d, loss: %6.5f, time: "%(nIter, f.numpy()), elapsed)
+        print("Step: %3d, loss: %9.8f, time: "%(nIter, f.numpy()), elapsed)
         state.start_time = time.time()
 
 
