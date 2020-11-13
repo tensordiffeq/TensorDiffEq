@@ -99,8 +99,8 @@ def fit_dist(obj, tf_iter, newton_iter, batch_sz = None, newton_eager = True):
 
     BUFFER_SIZE = len(obj.x_f)
     EPOCHS = tf_iter
-    # devices = ['/gpu:0'],
-    obj.strategy = tf.distribute.MirroredStrategy(devices = ['/gpu:0', '/gpu:1'], cross_device_ops = tf.distribute.NcclAllReduce())
+    # devices = ['/gpu:0', '/gpu:1'], 
+    obj.strategy = tf.distribute.MirroredStrategy(cross_device_ops = tf.distribute.NcclAllReduce())
     print("number of devices: {}".format(obj.strategy.num_replicas_in_sync))
 
     if batch_sz is not None:
@@ -130,7 +130,7 @@ def fit_dist(obj, tf_iter, newton_iter, batch_sz = None, newton_eager = True):
         #Can adjust batch size for collocation points, here we set it to N_f
 
         if obj.isAdaptive:
-            obj.col_weights = tf.Variable(tf.random.uniform([10000, 1]))
+            obj.col_weights = tf.Variable(tf.random.uniform([5000, 1]))
             obj.u_weights = tf.Variable(100*tf.random.uniform([200, 1]))
     #tf_optimizer_u = tf.keras.optimizers.Adam(lr = 0.005, beta_1=.99)
 
