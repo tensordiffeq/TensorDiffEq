@@ -41,13 +41,6 @@ u0 = tf.cast(u0, tf.float32)
 idx_t = np.random.choice(t.shape[0], N_b, replace=False)
 tb = t[idx_t,:]
 
-# x_f_idx = np.random.choice(x.shape[0], N_f, replace=True)
-# t_f_idx = np.random.choice(t.shape[0], N_f, replace=True)
-
-# x_f = tf.convert_to_tensor(x[x_f_idx,:], dtype=tf.float32)
-# t_f = tf.convert_to_tensor(t[t_f_idx,:], dtype=tf.float32)
-# u_f = tf.convert_to_tensor(Exact_u[x_f_idx, t_f_idx], dtype=tf.float32)
-
 xlimits = np.array([[-1.0, 1.0], [0.0, 1.0]])
 X_f = tdq.LatinHypercubeSample(N_f, xlimits)
 
@@ -72,13 +65,6 @@ t_b_zeros = tf.cast(tf.reshape(np.repeat(0.0, N0),(N0,1)), tf.float32)
 u_ub = tf.cast(tf.reshape(np.repeat(0.0, N_b),(N_b,1)), tf.float32)
 u_lb = tf.cast(tf.reshape(np.repeat(0.0, N_b),(N_b,1)), tf.float32)
 
-xb0 = tf.concat([x0, x_ub, x_lb], 0)
-tb0 = tf.concat([t_b_zeros, t_ub, t_lb],0)
-ub0 = tf.concat([u0, u_ub, u_lb],0)
-
-# x0 = xb0
-# t0 = tb0
-# u0 = ub0
 
 
 layer_sizes = [2, 128, 128, 128, 128, 1]
