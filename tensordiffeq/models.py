@@ -63,6 +63,7 @@ class CollocationSolver1D:
 
     def loss(self):
         if self.dist:
+
             f_u_pred = self.f_model(self.u_model, self.dist_x_f, self.dist_t_f)
         else:
             f_u_pred = self.f_model(self.u_model, self.x_f, self.t_f)
