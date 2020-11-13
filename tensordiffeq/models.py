@@ -61,12 +61,12 @@ class CollocationSolver1D:
         self.data_t = t
         self.data_s = y
 
-    @tf.function
     def loss(self):
         if self.dist:
             f_u_pred = self.f_model(self.u_model, self.dist_x_f, self.dist_t_f)
         else:
             f_u_pred = self.f_model(self.u_model, self.x_f, self.t_f)
+
         u0_pred = self.u_model(tf.concat([self.x0, self.t0],1))
 
         if self.periodicBC:
@@ -104,6 +104,8 @@ class CollocationSolver1D:
 
 
     def fit(self, tf_iter, newton_iter, batch_sz = None, newton_eager = True):
+        if(self.isAdaptive and (batch_sz is not None)):
+            raise Exception("Currently we dont support minibatching for adaptive PINNs")
         if self.dist:
             fit_dist(self, tf_iter = tf_iter, newton_iter = newton_iter, batch_sz = batch_sz, newton_eager = newton_eager)
         else:
@@ -177,7 +179,6 @@ class DiscoveryModel():
         self.u_model = neural_net(self.layer_sizes)
         self.tf_optimizer = tf.keras.optimizers.Adam(lr = 0.005, beta_1=.99)
         self.tf_optimizer_vars = tf.keras.optimizers.Adam(lr = 0.005, beta_1=.99)
-        print(self.x)
 
     def loss(self):
         u_pred = self.u_model(self.X)
