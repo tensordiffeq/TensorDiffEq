@@ -73,8 +73,7 @@ model = CollocationSolver1D()
 model.compile(layer_sizes, f_model, x_f, t_f, x0, t0, u0, x_lb, t_lb, x_ub, t_ub, u_lb = u_lb, u_ub = u_ub)
 
 #train loops6
-model.fit(tf_iter = 10000, newton_iter =10000)
-
+model.fit(tf_iter = 1000, newton_iter =1000)
 
 X, T = np.meshgrid(x,t)
 
