@@ -6,6 +6,7 @@ from .utils import *
 from .optimizers import *
 import time
 import os
+import sys
 
 #os.environ["TF_GPU_THREAD_MODE"] = "gpu_private"
 
@@ -37,7 +38,7 @@ def fit(obj, tf_iter, newton_iter, batch_sz = None, newton_eager = True):
         # else:
         loss_value, mse_0, mse_b, mse_f = train_op(obj, n_batches)
 
-        if epoch % 100 == 0:
+        if epoch % 1 == 0:
             elapsed = time.time() - start_time
             print('It: %d, Time: %.2f' % (epoch, elapsed))
             tf.print(f"mse_0: {mse_0}  mse_b  {mse_b}  mse_f: {mse_f}   total loss: {loss_value}")
@@ -99,8 +100,8 @@ def fit_dist(obj, tf_iter, newton_iter, batch_sz = None, newton_eager = True):
 
     BUFFER_SIZE = len(obj.x_f)
     EPOCHS = tf_iter
-    # devices = ['/gpu:0', '/gpu:1'],
-    obj.strategy = tf.distribute.MirroredStrategy(devices = ['/gpu:0', '/gpu:1'])
+    # devices = ['/gpu:0', '/gpu:1','/gpu:2', '/gpu:3'],
+    obj.strategy = tf.distribute.MirroredStrategy()
     print("number of devices: {}".format(obj.strategy.num_replicas_in_sync))
 
     if batch_sz is not None:
@@ -114,8 +115,8 @@ def fit_dist(obj, tf_iter, newton_iter, batch_sz = None, newton_eager = True):
     BATCH_SIZE_PER_REPLICA = obj.batch_sz
     GLOBAL_BATCH_SIZE = BATCH_SIZE_PER_REPLICA * obj.strategy.num_replicas_in_sync
 
-    #options = tf.data.Options()
-    #options.experimental_distribute.auto_shard_policy = tf.data.experimental.AutoShardPolicy.DATA
+    options = tf.data.Options()
+    options.experimental_distribute.auto_shard_policy = tf.data.experimental.AutoShardPolicy.DATA
 
     # input_context = tf.distribute.InputContext(
     #     num_input_pipelines=1, input_pipeline_id=0, num_replicas_in_sync=obj.strategy.num_replicas_in_sync
@@ -132,9 +133,10 @@ def fit_dist(obj, tf_iter, newton_iter, batch_sz = None, newton_eager = True):
     #
     #
     # obj.train_dist_dataset = obj.strategy.experimental_distribute_datasets_from_function(dataset_fn)
-    obj.train_dataset = tf.data.Dataset.from_tensors((obj.x_f, obj.t_f))#.batch(GLOBAL_BATCH_SIZE)
+    obj.train_dataset = tf.data.Dataset.from_tensor_slices((obj.x_f, obj.t_f)).batch(GLOBAL_BATCH_SIZE)
+    #print(list(obj.train_dataset.as_numpy_iterator()))
     #obj.train_dataset.prefetch(8)
-    #obj.train_dataset = obj.train_dataset.with_options(options)
+    obj.train_dataset = obj.train_dataset.with_options(options)
     #col_weights = tf.data.Dataset.from_tensor_slices((obj.col_weights)).batch(GLOBAL_BATCH_SIZE)
     #print(GLOBAL_BATCH_SIZE)
     obj.train_dist_dataset = obj.strategy.experimental_distribute_dataset(obj.train_dataset)
@@ -155,7 +157,7 @@ def fit_dist(obj, tf_iter, newton_iter, batch_sz = None, newton_eager = True):
         #obj.loss = tf.function(obj.loss)
     #tf_optimizer_u = tf.keras.optimizers.Adam(lr = 0.005, beta_1=.99)
 
-
+    @tf.function
     def train_epoch(dataset, col_weights, STEPS):
         total_loss = 0.0
         num_batches = 0.0
@@ -201,27 +203,31 @@ def fit_dist(obj, tf_iter, newton_iter, batch_sz = None, newton_eager = True):
         return obj.strategy.reduce(tf.distribute.ReduceOp.SUM, per_replica_losses,
                              axis=None)
 
-
     @tf.function
+    def dist_loop(obj, STEPS):
+        total_loss = 0.0
+        num_batches = 0.0
+        #dist_col_weights = iter(col_weights)
+        dist_dataset_iterator = iter(obj.train_dist_dataset)
+        for _ in range(STEPS):
+            total_loss += distributed_train_step(obj, next(dist_dataset_iterator), obj.col_weights)
+            num_batches += 1
+        train_loss = total_loss / num_batches
+        return train_loss
+
+
+
     def train_loop(obj, tf_iter, STEPS):
 
         start_time = time.time()
         for epoch in range(tf_iter):
-            total_loss = 0.0
-            num_batches = 0.0
-            #dist_col_weights = iter(col_weights)
-            dist_dataset_iterator = iter(obj.train_dist_dataset)
-            for _ in range(STEPS):
-                total_loss += distributed_train_step(obj, next(dist_dataset_iterator), obj.col_weights)
-                num_batches += 1
-            train_loss = total_loss / num_batches
+            loss = dist_loop(obj,STEPS)
             #train_loss = train_epoch(obj.train_dist_dataset, obj.col_weights, STEPS)
             # if epoch == 2:
             #     tf.profiler.experimental.start('../cache/tblogdir1')
-            if epoch % 100 == 0:
+            if epoch % 1 == 0:
                 elapsed = time.time() - start_time
-                print('It: %d, Time: %.2f' % (epoch, elapsed))
-                tf.print(f"total loss: {train_loss}")
+                print('It: %d, Time: %.2f, loss: %.9f' % (epoch, elapsed, tf.get_static_value(loss)))
                 start_time = time.time()
         #tf.profiler.experimental.stop()
 
@@ -233,5 +239,5 @@ def fit_dist(obj, tf_iter, newton_iter, batch_sz = None, newton_eager = True):
 
     #l-bfgs-b optimization
     print("Starting L-BFGS training")
-    lbfgs_train(obj, newton_iter)
+    #lbfgs_train(obj, newton_iter)
     #tf.profiler.experimental.stop()
