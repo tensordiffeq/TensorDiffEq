@@ -30,7 +30,7 @@ def fit(obj, tf_iter, newton_iter, batch_sz = None, newton_eager = True):
     #graph using grad and adaptgrad, so they cant be compiled as tf.functions until we know dist/non-dist
     obj.grad = tf.function(obj.grad)
     print("starting Adam training")
-    tf.profiler.experimental.start('../cache/tblogdir1')
+    #tf.profiler.experimental.start('../cache/tblogdir1')
     for epoch in range(tf_iter):
         # if obj.isAdaptive:
         #     loss_value, mse_0, mse_b, mse_f, grads, grads_col, grads_u = train_op(obj, n_batches)
@@ -42,7 +42,7 @@ def fit(obj, tf_iter, newton_iter, batch_sz = None, newton_eager = True):
             print('It: %d, Time: %.2f' % (epoch, elapsed))
             tf.print(f"mse_0: {mse_0}  mse_b  {mse_b}  mse_f: {mse_f}   total loss: {loss_value}")
             start_time = time.time()
-    tf.profiler.experimental.stop()
+    #tf.profiler.experimental.stop()
     #l-bfgs-b optimization
     print("Starting L-BFGS training")
     #tf.profiler.experimental.start('../cache/tblogdir1')
@@ -100,7 +100,7 @@ def fit_dist(obj, tf_iter, newton_iter, batch_sz = None, newton_eager = True):
     BUFFER_SIZE = len(obj.x_f)
     EPOCHS = tf_iter
     # devices = ['/gpu:0', '/gpu:1'],
-    obj.strategy = tf.distribute.MirroredStrategy(devices = ['/gpu:0'],cross_device_ops = tf.distribute.NcclAllReduce())
+    obj.strategy = tf.distribute.MirroredStrategy(devices = ['/gpu:0', '/gpu:1'])
     print("number of devices: {}".format(obj.strategy.num_replicas_in_sync))
 
     if batch_sz is not None:
@@ -113,6 +113,7 @@ def fit_dist(obj, tf_iter, newton_iter, batch_sz = None, newton_eager = True):
 
     BATCH_SIZE_PER_REPLICA = obj.batch_sz
     GLOBAL_BATCH_SIZE = BATCH_SIZE_PER_REPLICA * obj.strategy.num_replicas_in_sync
+
     #options = tf.data.Options()
     #options.experimental_distribute.auto_shard_policy = tf.data.experimental.AutoShardPolicy.DATA
 
@@ -166,7 +167,7 @@ def fit_dist(obj, tf_iter, newton_iter, batch_sz = None, newton_eager = True):
         train_loss = total_loss / num_batches
         return train_loss
 
-    @tf.function()
+
     def train_step(obj, inputs, col_weights):
         obj.dist_x_f, obj.dist_t_f = inputs
         #obj.dist_col_weights = col_weights
@@ -194,16 +195,18 @@ def fit_dist(obj, tf_iter, newton_iter, batch_sz = None, newton_eager = True):
             obj.tf_optimizer.apply_gradients(zip(grads, obj.u_model.trainable_variables))
         return loss_value
 
-
+    @tf.function
     def distributed_train_step(obj, dataset_inputs, col_weights):
         per_replica_losses = obj.strategy.run(train_step, args=(obj, dataset_inputs, col_weights))
         return obj.strategy.reduce(tf.distribute.ReduceOp.SUM, per_replica_losses,
                              axis=None)
 
-    print("starting Adam training")
-    STEPS = np.max((n_batches // obj.strategy.num_replicas_in_sync,1))
-    #
-    for epoch in range(tf_iter):
+
+    @tf.function
+    def train_loop(obj, tf_iter, STEPS):
+
+        start_time = time.time()
+        for epoch in range(tf_iter):
             total_loss = 0.0
             num_batches = 0.0
             #dist_col_weights = iter(col_weights)
@@ -220,8 +223,14 @@ def fit_dist(obj, tf_iter, newton_iter, batch_sz = None, newton_eager = True):
                 print('It: %d, Time: %.2f' % (epoch, elapsed))
                 tf.print(f"total loss: {train_loss}")
                 start_time = time.time()
+        #tf.profiler.experimental.stop()
 
-    # tf.profiler.experimental.stop()
+    print("starting Adam training")
+    STEPS = np.max((n_batches // obj.strategy.num_replicas_in_sync,1))
+    #
+    train_loop(obj, tf_iter, STEPS)
+
+
     #l-bfgs-b optimization
     print("Starting L-BFGS training")
     lbfgs_train(obj, newton_iter)
