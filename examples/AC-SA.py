@@ -20,7 +20,7 @@ def u_x_model(u_model, x, t):
     return u, u_x
 
 def g(lam):
-    return lam**4
+    return lam**2
 
 
 N0 = 200
@@ -79,7 +79,7 @@ model = CollocationSolver1D()
 model.compile(layer_sizes, f_model, x_f, t_f, x0, t0, u0, x_lb, t_lb, x_ub, t_ub, isPeriodic=True, isAdaptive=True, u_x_model=u_x_model, col_weights=col_weights, u_weights=u_weights, g = g)
 
 #train loops6
-model.fit(tf_iter = 1000, newton_iter =10000)
+model.fit(tf_iter = 10000, newton_iter =10000)
 
 #generate meshgrid for forward pass of u_pred
 X, T = np.meshgrid(x,t)
@@ -100,9 +100,9 @@ ub = np.array([1.0, 1])
 
 tdq.plotting.plot_solution_domain1D(model, [x, t],  ub = ub, lb = lb, Exact_u=Exact_u)
 
-tdq.plotting.plot_weights(model)
+tdq.plotting.plot_weights(model, scale = 10.0)
 
-tdq.plotting.plot_glam_values(model)
+tdq.plotting.plot_glam_values(model, scale = 100.0)
 
 extent = [0.0, 1.0, -1.0, 1.0]
 tdq.plotting.plot_residuals(FU_pred, extent)

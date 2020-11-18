@@ -38,7 +38,7 @@ def fit(obj, tf_iter, newton_iter, batch_sz = None, newton_eager = True):
         # else:
         loss_value, mse_0, mse_b, mse_f = train_op(obj, n_batches)
 
-        if epoch % 1 == 0:
+        if epoch % 100 == 0:
             elapsed = time.time() - start_time
             print('It: %d, Time: %.2f' % (epoch, elapsed))
             tf.print(f"mse_0: {mse_0}  mse_b  {mse_b}  mse_f: {mse_f}   total loss: {loss_value}")
@@ -101,7 +101,7 @@ def fit_dist(obj, tf_iter, newton_iter, batch_sz = None, newton_eager = True):
     BUFFER_SIZE = len(obj.x_f)
     EPOCHS = tf_iter
     # devices = ['/gpu:0', '/gpu:1','/gpu:2', '/gpu:3'],
-    obj.strategy = tf.distribute.MirroredStrategy()
+    obj.strategy = tf.distribute.MirroredStrategy(devices = ['/gpu:0', '/gpu:1'])
     print("number of devices: {}".format(obj.strategy.num_replicas_in_sync))
 
     if batch_sz is not None:
@@ -134,13 +134,13 @@ def fit_dist(obj, tf_iter, newton_iter, batch_sz = None, newton_eager = True):
     #
     # obj.train_dist_dataset = obj.strategy.experimental_distribute_datasets_from_function(dataset_fn)
     obj.train_dataset = tf.data.Dataset.from_tensor_slices((obj.x_f, obj.t_f)).batch(GLOBAL_BATCH_SIZE)
-    #print(list(obj.train_dataset.as_numpy_iterator()))
-    #obj.train_dataset.prefetch(8)
+    #
+    #
     obj.train_dataset = obj.train_dataset.with_options(options)
-    #col_weights = tf.data.Dataset.from_tensor_slices((obj.col_weights)).batch(GLOBAL_BATCH_SIZE)
-    #print(GLOBAL_BATCH_SIZE)
+    # obj.train_dataset.prefetch(20)
+    #
     obj.train_dist_dataset = obj.strategy.experimental_distribute_dataset(obj.train_dataset)
-    #col_weights = obj.strategy.experimental_distribute_dataset(col_weights)
+
 
     start_time = time.time()
 
@@ -223,13 +223,13 @@ def fit_dist(obj, tf_iter, newton_iter, batch_sz = None, newton_eager = True):
         for epoch in range(tf_iter):
             loss = dist_loop(obj,STEPS)
             #train_loss = train_epoch(obj.train_dist_dataset, obj.col_weights, STEPS)
-            # if epoch == 2:
-            #     tf.profiler.experimental.start('../cache/tblogdir1')
+            if epoch == 2:
+                tf.profiler.experimental.start('../cache/tblogdir1')
             if epoch % 1 == 0:
                 elapsed = time.time() - start_time
                 print('It: %d, Time: %.2f, loss: %.9f' % (epoch, elapsed, tf.get_static_value(loss)))
                 start_time = time.time()
-        #tf.profiler.experimental.stop()
+        tf.profiler.experimental.stop()
 
     print("starting Adam training")
     STEPS = np.max((n_batches // obj.strategy.num_replicas_in_sync,1))

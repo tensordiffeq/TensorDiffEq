@@ -25,7 +25,7 @@ def u_x_model(u_model, x, t):
 N0 = 200
 NS = 200
 N_b = 100
-N_f = 200000
+N_f = 500000
 
 col_weights = tf.random.uniform([N_f, 1])
 u_weights = tf.Variable(100*tf.random.uniform([N0, 1]))
@@ -93,7 +93,7 @@ def g(lam):
 model.compile(layer_sizes, f_model, x_f, t_f, x0, t0, u0, x_lb, t_lb, x_ub, t_ub, isPeriodic=True, u_x_model=u_x_model, dist = True)
 #train loop
 init = model.col_weights
-model.fit(tf_iter = 500, newton_iter = 100, batch_sz = 2048)
+model.fit(tf_iter = 5, newton_iter = 100, batch_sz = 4096)
 
 #generate meshgrid for forward pass of u_pred
 X, T = np.meshgrid(x,t)
