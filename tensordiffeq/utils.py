@@ -60,8 +60,8 @@ def LatinHypercubeSample(N_f, bounds):
 def get_tf_model(model):
     return tf.function(model)
 
-def tensor(x):
-    return tf.convert_to_tensor(x, dtype=tf.float32)
+def tensor(x, dtype = tf.float32):
+    return tf.convert_to_tensor(x, dtype=dtype)
 
 
 

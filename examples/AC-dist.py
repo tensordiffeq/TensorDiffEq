@@ -89,8 +89,8 @@ model = CollocationSolver1D()
 def g(lam):
     return lam**2
 
-#model.compile(layer_sizes, f_model, x_f, t_f, x0, t0, u0, x_lb, t_lb, x_ub, t_ub, isPeriodic=True, u_x_model=u_x_model, isAdaptive = True, col_weights = col_weights, u_weights = u_weights, g = g, dist = True)
-model.compile(layer_sizes, f_model, x_f, t_f, x0, t0, u0, x_lb, t_lb, x_ub, t_ub, isPeriodic=True, u_x_model=u_x_model, dist = True)
+model.compile(layer_sizes, f_model, x_f, t_f, x0, t0, u0, x_lb, t_lb, x_ub, t_ub, isPeriodic=True, u_x_model=u_x_model, isAdaptive = True, col_weights = col_weights, u_weights = u_weights, g = g, dist = True)
+#model.compile(layer_sizes, f_model, x_f, t_f, x0, t0, u0, x_lb, t_lb, x_ub, t_ub, isPeriodic=True, u_x_model=u_x_model, dist = True)
 #train loop
 init = model.col_weights
 model.fit(tf_iter = 5, newton_iter = 100, batch_sz = 4096)
