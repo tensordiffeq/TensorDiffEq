@@ -46,9 +46,6 @@ def fit(obj, tf_iter, newton_iter, batch_sz = None, newton_eager = True):
     print("Starting L-BFGS training")
     #tf.profiler.experimental.start('../cache/tblogdir1')
 
-
-
-
     if newton_eager:
         print("Executing eager-mode L-BFGS")
         loss_and_flat_grad = obj.get_loss_and_flat_grad()
@@ -150,7 +147,6 @@ def fit_dist(obj, tf_iter, newton_iter, batch_sz = None, newton_eager = True):
             num_batches += 1
         train_loss = total_loss / num_batches
         return train_loss
-
 
     def train_step(obj, inputs):
         col_idx, obj.dist_x_f, obj.dist_t_f = inputs
