@@ -7,7 +7,7 @@ from .networks import *
 from .plotting import *
 from .fit import *
 
-class CollocationSolver1D(Domain):
+class CollocationSolver1D():
     def __init__(self, assimilate = False):
         self.assimilate = assimilate
         self.periodicBC = False

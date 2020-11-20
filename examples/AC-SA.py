@@ -25,7 +25,7 @@ def g(lam):
 
 N0 = 200
 N_b = 100
-N_f = 20000
+N_f = 500000
 
 col_weights = tf.Variable(tf.random.uniform([N_f, 1]), trainable = True, dtype = tf.float32)
 u_weights = tf.Variable(100*tf.random.uniform([N0, 1]), trainable = True, dtype = tf.float32)

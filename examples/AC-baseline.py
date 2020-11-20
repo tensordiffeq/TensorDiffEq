@@ -71,7 +71,7 @@ model = CollocationSolver1D()
 model.compile(layer_sizes, f_model, x_f, t_f, x0, t0, u0, x_lb, t_lb, x_ub, t_ub, isPeriodic=True, u_x_model=u_x_model)
 
 #train loop
-model.fit(tf_iter = 50, newton_iter = 100)
+model.fit(tf_iter = 301, newton_iter = 100)
 
 #generate meshgrid for forward pass of u_pred
 X, T = np.meshgrid(x,t)
