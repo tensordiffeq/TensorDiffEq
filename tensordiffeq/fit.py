@@ -8,7 +8,7 @@ import time
 import os
 import sys
 
-#os.environ["TF_GPU_THREAD_MODE"] = "gpu_private"
+os.environ["TF_GPU_THREAD_MODE"] = "gpu_private"
 
 
 
@@ -97,7 +97,7 @@ def fit_dist(obj, tf_iter, newton_iter, batch_sz = None, newton_eager = True):
     BUFFER_SIZE = len(obj.x_f)
     EPOCHS = tf_iter
     # devices = ['/gpu:0', '/gpu:1','/gpu:2', '/gpu:3'],
-    obj.strategy = tf.distribute.MirroredStrategy()
+    obj.strategy = tf.distribute.MirroredStrategy(devices = ['/gpu:0', "/gpu:1"])
     print("number of devices: {}".format(obj.strategy.num_replicas_in_sync))
 
     if batch_sz is not None:
