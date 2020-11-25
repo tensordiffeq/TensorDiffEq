@@ -50,8 +50,9 @@ print(np.shape(x),np.shape(t), np.shape(u_star))
 
 vars = [tf.Variable(0.0, dtype = tf.float32), tf.Variable(0.0, dtype = tf.float32)]
 
+col_weights = tf.Variable(tf.random.uniform([np.shape(x)[0], 1]))
 
-model.compile(layer_sizes, f_model, X_star, u_star, vars)
+model.compile(layer_sizes, f_model, X_star, u_star, vars, col_weights = col_weights)
 
 #train loop
 model.fit(tf_iter = 10000)
