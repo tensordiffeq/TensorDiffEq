@@ -221,11 +221,6 @@ class DiscoveryModel():
             loss_value, mse_0, mse_b, mse_f, grads = self.grad()
             self.tf_optimizer.apply_gradients(zip(grads, self.u_model.trainable_variables))
 
-
-
-
-
-
         # loss_value, grads_model, grads_vars = self.grad()
         # self.tf_optimizer.apply_gradients(zip(grads_model, self.u_model.trainable_variables))
         # self.tf_optimizer_vars.apply_gradients(zip(grads_vars, self.vars))
