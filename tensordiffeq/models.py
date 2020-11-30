@@ -168,36 +168,25 @@ class DiscoveryModel():
         self.layer_sizes = layer_sizes
         self.f_model = f_model
         self.X = X
-        self.x = X[:,0:1]
-        self.t = X[:,1:2]
+        self.x_f = X[:,0:1]
+        self.t_f = X[:,1:2]
         self.u = u
         self.vars = vars
         self.u_model = neural_net(self.layer_sizes)
         self.tf_optimizer = tf.keras.optimizers.Adam(lr = 0.005, beta_1=.99)
-        self.tf_optimizer_vars = tf.keras.optimizers.Adam(lr = 0.005, beta_1=.99)
+        self.tf_optimizer_vars = tf.keras.optimizers.Adam(lr = 0.0005, beta_1=.99)
         self.tf_optimizer_weights = tf.keras.optimizers.Adam(lr = 0.005, beta_1=.99)
         self.col_weights = col_weights
 
     def loss(self):
         u_pred = self.u_model(self.X)
-        f_u_pred, self.vars = self.f_model(self.u_model, self.x, self.t, self.vars)
+        f_u_pred, self.vars = self.f_model(self.u_model, self.x_f, self.t_f, self.vars)
 
         if self.col_weights is not None:
             return MSE(u_pred, self.u) + g_MSE(f_u_pred, constant(0.0), self.col_weights**2)
         else:
             return MSE(u_pred, self.u) + MSE(f_u_pred, constant(0.0))
 
-    def fit(self, tf_iter):
-        self.train_loop(tf_iter)
-
-    # @tf.function
-    # def grad(self):
-    #     with tf.GradientTape(persistent = True) as tape:
-    #         loss_value = self.loss()
-    #         grads = tape.gradient(loss_value, self.u_model.trainable_variables)
-    #         var_grads = tape.gradient(loss_value, self.vars)
-    #         del tape
-    #     return loss_value, grads, var_grads
 
     def grad(self):
         with tf.GradientTape() as tape:
@@ -209,13 +198,9 @@ class DiscoveryModel():
     def train_op(self):
         if self.col_weights is not None:
             len_ = len(self.vars)
-            print(len_)
-
-            #unstack = tf.unstack(self.u_model.trainable_variables, axis = 2)
             self.variables = self.u_model.trainable_variables
             self.variables.extend([self.col_weights])
             self.variables.extend(self.vars)
-            print(self.variables[-len_:])
             loss_value, grads = self.grad()
             self.tf_optimizer.apply_gradients(zip(grads[:-(len_+2)], self.u_model.trainable_variables))
             self.tf_optimizer_weights.apply_gradients(zip([-grads[-(len_+1)]], [self.col_weights]))
@@ -225,9 +210,6 @@ class DiscoveryModel():
             loss_value, mse_0, mse_b, mse_f, grads = self.grad()
             self.tf_optimizer.apply_gradients(zip(grads, self.u_model.trainable_variables))
 
-        # loss_value, grads_model, grads_vars = self.grad()
-        # self.tf_optimizer.apply_gradients(zip(grads_model, self.u_model.trainable_variables))
-        # self.tf_optimizer_vars.apply_gradients(zip(grads_vars, self.vars))
         return loss_value
 
 
