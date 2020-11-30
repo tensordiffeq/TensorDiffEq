@@ -87,7 +87,7 @@ model = CollocationSolver1D(assimilate = True)
 def g(lam):
     return lam**2
 
-model.compile(layer_sizes, f_model, x_f, t_f, x0, t0, u0, x_lb, t_lb, x_ub, t_ub, isPeriodic=True, u_x_model=u_x_model, isAdaptive = True, col_weights = col_weights, u_weights = u_weights, g = g)
+model.compile(layer_sizes, f_model, x_f, t_f, x0, t0, u0, x_lb, t_lb, x_ub, t_ub, isPeriodic=True, u_x_model=u_x_model)
 model.compile_data(x_s, t_s, y_s)
 
 #train loop
