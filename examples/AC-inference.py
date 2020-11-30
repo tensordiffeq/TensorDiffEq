@@ -57,21 +57,4 @@ model.compile(layer_sizes, f_model, X_star, u_star, vars, col_weights = col_weig
 #train loop
 model.fit(tf_iter = 10000)
 
-#generate meshgrid for forward pass of u_pred
-
-
-u_pred, f_u_pred = model.predict(X_star)
-
-error_u = tdq.find_L2_error(u_pred, u_star)
-print('Error u: %e' % (error_u))
-
-U_pred = tdq.get_griddata(X_star, u_pred.flatten(), (X,T))
-FU_pred = tdq.get_griddata(X_star, f_u_pred.flatten(), (X,T))
-
-lb = np.array([-1.0, 0.0])
-ub = np.array([1.0, 1])
-
-tdq.plotting.plot_solution_domain1D(model, [x, t],  ub = ub, lb = lb, Exact_u=Exact_u)
-
-extent = [0.0, 1.0, -1.0, 1.0]
-tdq.plotting.plot_residuals(FU_pred, extent)
+tdq.plotting.plot_weights(model, scale = 10.0)
