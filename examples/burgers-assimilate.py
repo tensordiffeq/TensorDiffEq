@@ -12,7 +12,7 @@ def f_model(u_model, x, t):
     u_xx = tf.gradients(u_x, x)
     u_t = tf.gradients(u, t)
 
-    f_u = u_t + u*u_x - (0.01/tf.constant(math.pi))*u_xx
+    f_u = u_t + u*u_x - (0.05/tf.constant(math.pi))*u_xx
 
     return f_u
 
@@ -82,8 +82,15 @@ model = CollocationSolver1D(assimilate = True)
 #model.compile(layer_sizes, f_model, x_f, t_f, x0, t0, u0, x_lb, t_lb, x_ub, t_ub, isAdaptive=True, col_weights=col_weights, u_weights=u_weights, g = g)
 model.compile(layer_sizes, f_model, x_f, t_f, x0, t0, u0, x_lb, t_lb, x_ub, t_ub, u_lb = u_lb, u_ub = u_ub)
 model.compile_data(x_s, t_s, y_s)
-#train loops6
-model.fit(tf_iter = 1000, newton_iter =1000)
+#train loops
+model.fit(tf_iter = 100, newton_iter =100)
+
+plot()
+
+model.fit(tf_iter = 100, newton_iter =100)
+
+plot()
+
 
 X, T = np.meshgrid(x,t)
 
