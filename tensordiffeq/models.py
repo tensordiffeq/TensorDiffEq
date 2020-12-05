@@ -162,7 +162,6 @@ class CollocationSolver2D(CollocationSolver1D):
 
         return  mse_0_u + mse_b_u + mse_f_u , mse_0_u, mse_b_u, mse_f_u
 
-
 class DiscoveryModel():
     def compile(self, layer_sizes, f_model, X, u, vars, col_weights = None):
         self.layer_sizes = layer_sizes
