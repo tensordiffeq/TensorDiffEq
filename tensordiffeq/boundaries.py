@@ -1,6 +1,9 @@
 import domains
-import 
+import
 
 
 def dirichlectBC(u, val):
     return MSE(u, val)
+
+def periodicBC(u):
+    return
