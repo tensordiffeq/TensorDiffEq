@@ -19,3 +19,9 @@ class Rectangle3D(Rectangle2D):
         super().__init__(self, xlim, ylim, tlim = tlim)
         self.z_ub = zlim[0]
         self.z_lb = zlim[1]
+
+class DomainND:
+    def __init__(self, vals, fidel):
+        self.bounds = vals
+        self.fidel = fidel
+    

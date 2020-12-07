@@ -25,6 +25,14 @@ NS = 200
 N_b = 100
 N_f = 20000
 
+Domain = DomainND([[-1,1], [0,1]], [512, 100])
+
+
+BCs = [IC(Domain, np.sin(x*math.pi), vars = 0),
+            dirichlectBC(Domain, val = 0.0, vars = 0, target = 0),
+            dirichlectBC(Domain, val = 0.0, vars = 0, target = 1)]
+
+
 col_weights = tf.Variable(tf.random.uniform([N_f, 1]))
 u_weights = tf.Variable(100*tf.random.uniform([N0, 1]))
 
