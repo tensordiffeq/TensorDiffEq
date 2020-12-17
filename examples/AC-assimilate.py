@@ -33,7 +33,7 @@ def func_ic(x):
 BCs = [IC(Domain, func_ic, vars = 0),
             dirichlectBC(Domain, val = 0.0, vars = 0, target = 0),
             dirichlectBC(Domain, val = 0.0, vars = 0, target = 1),
-            periodicBC(vars = 0)]
+            periodicBC(Domain)]
 
 
 col_weights = tf.Variable(tf.random.uniform([N_f, 1]))

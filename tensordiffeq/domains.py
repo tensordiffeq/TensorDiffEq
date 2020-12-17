@@ -24,4 +24,13 @@ class DomainND:
     def __init__(self, vals, fidel):
         self.bounds = vals
         self.fidel = fidel
-    
+
+    def create_domains(self):
+        doms = []
+        for i, val in self.vals:
+            doms.append(np.linspace(val[0], val[1], self.fidel[i]))
+        return doms
+
+    def create_mesh(self, doms):
+        mesh = np.meshgrid(doms)
+        return mesh
