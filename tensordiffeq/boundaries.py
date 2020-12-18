@@ -2,13 +2,9 @@ import domains
 import numpy as np
 
 class BC(Domain):
-    def __init__(self, u_model):
-        self.u_model = u_model
-        self.doms = self.create_domains()
-        self.grid = self.create_mesh()
-
-    def predict(self):
-        return self.u_model(val)
+    def __init__(self):
+        self.doms = self.domain.create_domains()
+        self.grid = self.domain.create_mesh()
 
 
 class dirichlectBC(BC):
@@ -30,9 +26,9 @@ class periodicBC(BC):
     def __init__(self, domain):
         self.domain = domain
 
-    def u_x_model(self, u_model):
-        u = u_model(tf.concat([x,t], 1))
-        u_x = tf.gradients(u, x)
+    def u_x_model(self, u_model, nn_input):
+        u = u_model(nn_input)
+        u_x = tf.gradients(u, nn_input[:,0:1])
         return u, u_x
 
     def create_edges(self):
@@ -48,6 +44,3 @@ class periodicBC(BC):
         u_lb_pred, u_x_lb_pred = self.u_x_model(self.u_model, self.x_lb, self.t_lb)
         u_ub_pred, u_x_ub_pred = self.u_x_model(self.u_model, self.x_ub, self.t_ub)
         return
-
-
-class IC():
