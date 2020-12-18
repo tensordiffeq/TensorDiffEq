@@ -1,3 +1,5 @@
+import numpy as np
+
 
 class Rectangle1D:
     def __init__(self, xlim, tlim = None):
@@ -24,6 +26,7 @@ class DomainND:
     def __init__(self, vals, fidel):
         self.bounds = vals
         self.fidel = fidel
+        self.domaindict = {}
 
     def create_domains(self):
         doms = []
@@ -34,3 +37,9 @@ class DomainND:
     def create_mesh(self, doms):
         mesh = np.meshgrid(doms)
         return mesh
+
+    def add(self, token, vals, fidel):
+        self.domaindict[token] = vals
+        self.domaindict[(token+"linspace")] = np.linspace(vals[0], vals[1], fidel)
+        self.domaindict[(token+"upper")] = vals[1]
+        self.domaindict[(token+"lower")] = vals[0]

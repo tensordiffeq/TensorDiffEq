@@ -27,13 +27,16 @@ N_f = 20000
 
 Domain = DomainND([[-1,1], [0,1]], [512, 100])
 
+Domain.add("x", [1-,1], 512)
+Domain.add("t", [0,1], 100)
+
 def func_ic(x):
     return np.sin(x*math.pi)
 
-BCs = [IC(Domain, func_ic, vars = 0),
-            dirichlectBC(Domain, val = 0.0, vars = 0, target = 0),
-            dirichlectBC(Domain, val = 0.0, vars = 0, target = 1),
-            periodicBC(Domain)]
+BCs = [IC(Domain, func_ic, vars = 'x'),
+            dirichlectBC(Domain, val = 0.0, vars = 'x', target = 0),
+            dirichlectBC(Domain, val = 0.0, vars = 'x', target = 1),
+            periodicBC(Domain, vars = 'x')]
 
 
 col_weights = tf.Variable(tf.random.uniform([N_f, 1]))
