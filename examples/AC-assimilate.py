@@ -25,17 +25,17 @@ NS = 200
 N_b = 100
 N_f = 20000
 
-Domain = DomainND([[-1,1], [0,1]], [512, 100])
+Domain = DomainND(["x", "t"])
 
-Domain.add("x", [1-,1], 512)
+Domain.add("x", [-1,1], 512)
 Domain.add("t", [0,1], 100)
 
 def func_ic(x):
     return np.sin(x*math.pi)
 
 BCs = [IC(Domain, func_ic, vars = 'x'),
-            dirichlectBC(Domain, val = 0.0, vars = 'x', target = 0),
-            dirichlectBC(Domain, val = 0.0, vars = 'x', target = 1),
+            dirichlectBC(Domain, val = 0.0, vars = 'x', target = "upper"),
+            dirichlectBC(Domain, val = 0.0, vars = 'x', target = "lower"),
             periodicBC(Domain, vars = 'x')]
 
 

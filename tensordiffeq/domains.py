@@ -23,10 +23,9 @@ class Rectangle3D(Rectangle2D):
         self.z_lb = zlim[1]
 
 class DomainND:
-    def __init__(self, vals, fidel):
-        self.bounds = vals
-        self.fidel = fidel
-        self.domaindict = {}
+    def __init__(self, vars):
+        self.vars = vars
+        self.domaindict = []
 
     def create_domains(self):
         doms = []
@@ -39,7 +38,11 @@ class DomainND:
         return mesh
 
     def add(self, token, vals, fidel):
-        self.domaindict[token] = vals
-        self.domaindict[(token+"linspace")] = np.linspace(vals[0], vals[1], fidel)
-        self.domaindict[(token+"upper")] = vals[1]
-        self.domaindict[(token+"lower")] = vals[0]
+        self.domaindict.append({
+        "identifier" : token,
+        "range" : vals,
+        (token+"fidelity") : fidel,
+        (token+"linspace") : np.linspace(vals[0], vals[1], fidel),
+        (token+"upper") : vals[1],
+        (token+"lower") : vals[0]
+        })
