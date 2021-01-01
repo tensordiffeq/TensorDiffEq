@@ -1,6 +1,7 @@
 from tensordiffeq.domains import *
 import numpy as np
 import tensorflow as tf
+from .utils import meshgrid2
 
 class BC(DomainND):
     def __init__(self):
@@ -17,6 +18,17 @@ class dirichlectBC(BC):
         self.target = target
 
     def create_target_input_repeat(self):
+        linspace_list = []
+
+        iter_ids = np.setdiff1d(self.domain.domain_ids, self.var).tolist()
+        for id in (iter_ids):
+            self.dict_ = next(item for item in self.domain.domaindict if item["identifier"] == id)
+            #print(self.domain.domaindict)
+            linspace_list.append(self.dict_[(id+"linspace")])
+        print(linspace_list)
+        out, out1 = np.meshgrid(linspace_list[0], linspace_list[1])
+
+        print(np.shape(np.hstack((out.flatten()[:,None], out1.flatten()[:,None]))))
         search_key = self.var
         self.dict_ = next(item for item in self.domain.domaindict if item["identifier"] == search_key)
         self.dict_t = next(item for item in self.domain.domaindict if item["identifier"] == self.time_var)

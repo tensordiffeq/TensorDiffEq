@@ -10,10 +10,12 @@ from tensordiffeq.boundaries import *
 Domain = DomainND(["x", "t"])
 
 Domain.add("x", [1.0,-1.0], 512)
+Domain.add("y", [1.0, -1.0], 512)
 Domain.add("t", [0.0,1.0], 100)
 
 print(Domain.domaindict)
 
-upper = dirichlectBC(Domain, val = 0.0, var = 'x', time_var = 't', target = "upper")
-print(upper.create_target_input_repeat())
-upper.loss()
+upper_x = dirichlectBC(Domain, val = 0.0, var = 'x', time_var = 't', target = "upper")
+upper_y = dirichlectBC(Domain, val = 0.0, var = 'y', time_var = 't', target = "upper")
+#print(upper_y.create_target_input_repeat())
+upper_y.loss()

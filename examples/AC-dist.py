@@ -74,6 +74,7 @@ X0 = np.concatenate((x0, 0*x0), 1) # (x0, 0)
 X_lb = np.concatenate((0*tb + lb[0], tb), 1) # (lb[0], tb)
 X_ub = np.concatenate((0*tb + ub[0], tb), 1) # (ub[0], tb)
 
+
 x0 = tf.cast(X0[:,0:1], dtype = tf.float32)
 t0 = tf.cast(X0[:,1:2], dtype = tf.float32)
 

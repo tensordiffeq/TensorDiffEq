@@ -26,6 +26,7 @@ class DomainND:
     def __init__(self, vars):
         self.vars = vars
         self.domaindict = []
+        self.domain_ids = []
 
     def create_domains(self):
         doms = []
@@ -38,6 +39,7 @@ class DomainND:
         return mesh
 
     def add(self, token, vals, fidel):
+        self.domain_ids.append(token)
         self.domaindict.append({
         "identifier" : token,
         "range" : vals,
