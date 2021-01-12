@@ -63,11 +63,13 @@ def get_tf_model(model):
 def tensor(x, dtype = tf.float32):
     return tf.convert_to_tensor(x, dtype=dtype)
 
-def meshgrid2(*arrs):
-    arrs = tuple(reversed(arrs))  #edit
-    lens = map(len, arrs)
+def multimesh(arrs):
+    lens = list(map(len, arrs))
     dim = len(arrs)
 
+    print(arrs)
+    print(list(lens))
+    print(dim)
     sz = 1
     for s in lens:
         sz*=s
@@ -76,13 +78,21 @@ def meshgrid2(*arrs):
     for i, arr in enumerate(arrs):
         slc = [1]*dim
         slc[i] = lens[i]
-        arr2 = asarray(arr).reshape(slc)
+        arr2 = np.asarray(arr).reshape(slc)
         for j, sz in enumerate(lens):
             if j!=i:
                 arr2 = arr2.repeat(sz, axis=j)
         ans.append(arr2)
 
-    return tuple(ans)
+    return ans #returns like np.meshgrid
+
+# if desired, this flattens and hstacks the output dimensions for feeding into a tf/keras type neural network
+def flatten_and_stack(mesh):
+  dims = np.shape(mesh)
+  output = np.zeros((len(mesh), np.prod(dims[1:])))
+  for i, arr in enumerate(out):
+      output[i] = arr.flatten()
+  return output #returns in an [nxm] matrix
 
 
 final_loss = None
