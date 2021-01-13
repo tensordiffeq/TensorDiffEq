@@ -1,7 +1,7 @@
 from tensordiffeq.domains import *
 import numpy as np
 import tensorflow as tf
-from .utils import meshgrid2
+from .utils import multimesh, flatten_and_stack
 
 class BC(DomainND):
     def __init__(self):
@@ -17,18 +17,16 @@ class dirichlectBC(BC):
         self.time_var = time_var
         self.target = target
 
-    def create_target_input_repeat(self):
+    def get_dims_list(self):
         linspace_list = []
-
         iter_ids = np.setdiff1d(self.domain.domain_ids, self.var).tolist()
         for id in (iter_ids):
             self.dict_ = next(item for item in self.domain.domaindict if item["identifier"] == id)
             #print(self.domain.domaindict)
             linspace_list.append(self.dict_[(id+"linspace")])
-        print(linspace_list)
-        out, out1 = np.meshgrid(linspace_list[0], linspace_list[1])
+        return linspace_list
 
-        print(np.shape(np.hstack((out.flatten()[:,None], out1.flatten()[:,None]))))
+    def create_target_input_repeat(self):
         search_key = self.var
         self.dict_ = next(item for item in self.domain.domaindict if item["identifier"] == search_key)
         self.dict_t = next(item for item in self.domain.domaindict if item["identifier"] == self.time_var)
@@ -36,16 +34,18 @@ class dirichlectBC(BC):
         return repeated_value
 
 
-    def loss(self):
+    def create_input(self):
         repeated_value = self.create_target_input_repeat()
         repeated_value = np.reshape(repeated_value, (-1,1))
-        mesh = np.reshape(np.meshgrid(self.dict_t[(self.time_var+"linspace")]), (-1,1))
+        mesh = flatten_and_stack(multimesh(self.get_dims_list()))
+        .index("bar")
+        print(mesh)
         #linsp = np.meshgrid(self.dict_t[(self.time_var+"linspace")])
 
         input = tf.concat([repeated_value, mesh], 1)
-        print(input)
-        #pred = u_model(input)
-        #return MSE(pred, val)
+
+    def loss(self, pred):
+        return MSE(pred, val)
 
 
 

@@ -90,9 +90,9 @@ def multimesh(arrs):
 def flatten_and_stack(mesh):
   dims = np.shape(mesh)
   output = np.zeros((len(mesh), np.prod(dims[1:])))
-  for i, arr in enumerate(out):
+  for i, arr in enumerate(mesh):
       output[i] = arr.flatten()
-  return output #returns in an [nxm] matrix
+  return output.T #returns in an [nxm] matrix
 
 
 final_loss = None

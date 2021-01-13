@@ -13,7 +13,6 @@ Domain.add("x", [1.0,-1.0], 512)
 Domain.add("y", [1.0, -1.0], 512)
 Domain.add("t", [0.0,1.0], 100)
 
-print(Domain.domaindict)
 
 upper_x = dirichlectBC(Domain, val = 0.0, var = 'x', time_var = 't', target = "upper")
 upper_y = dirichlectBC(Domain, val = 0.0, var = 'y', time_var = 't', target = "upper")
