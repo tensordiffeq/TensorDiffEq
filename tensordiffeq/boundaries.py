@@ -8,16 +8,23 @@ class BC(DomainND):
         self.doms = self.domain.create_domains()
         self.grid = self.domain.create_mesh()
 
+    def compile(self):
+        self.out = self.create_input()
+
+    def predict_values(self, model):
+        return model(self.out)
+
+    def loss(self, model):
+        preds = predict_values(model)
+        return MSE(preds, self.val)
+
 
 class dirichlectBC(BC):
-    def __init__(self, domain, val, var, time_var, target):
+    def __init__(self, domain, val, var, target):
         self.domain = domain
         self.val = val
         self.var = var
-        self.time_var = time_var
         self.target = target
-
-        self.create_input()
 
     def get_dims_list(self):
         linspace_list = []
@@ -39,10 +46,6 @@ class dirichlectBC(BC):
             res = [val for key, val in dict_.items() if fidelity_key in key]
             fids.append(res)
         reps = np.prod(fids)
-        print(reps)
-        #self.dicts_ = next(item for item in self.domain.domaindict if item["identifier"] != self.time_var)
-        print(self.dicts_)
-
         repeated_value = np.repeat(self.dict_[(self.var+self.target)],reps)
         return repeated_value
 
@@ -51,17 +54,9 @@ class dirichlectBC(BC):
         repeated_value = self.create_target_input_repeat()
         repeated_value = np.reshape(repeated_value, (-1,1))
         mesh = flatten_and_stack(multimesh(self.get_dims_list()))
-        #.index("bar")
-        print(mesh)
-        #linsp = np.meshgrid(self.dict_t[(self.time_var+"linspace")])
-        print(np.shape(repeated_value.flatten()))
         mesh = np.insert(mesh, self.domain.vars.index(self.var), repeated_value.flatten(), axis=1)
-        print(mesh)
-        #input = tf.concat([repeated_value, mesh], 1)
-        print(input)
+        return mesh
 
-    def loss(self, pred):
-        return MSE(pred, val)
 
 
 
@@ -76,7 +71,7 @@ class IC(BC):
 
 
 class periodicBC(BC):
-    def __init__(self, domain):
+    def __init__(self, domain, var):
         self.domain = domain
 
     def u_x_model(self, u_model, nn_input):

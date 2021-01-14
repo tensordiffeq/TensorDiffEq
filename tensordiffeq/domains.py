@@ -48,3 +48,5 @@ class DomainND:
         (token+"upper") : vals[1],
         (token+"lower") : vals[0]
         })
+
+    #def compile(self):

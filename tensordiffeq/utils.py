@@ -67,9 +67,6 @@ def multimesh(arrs):
     lens = list(map(len, arrs))
     dim = len(arrs)
 
-    print(arrs)
-    print(list(lens))
-    print(dim)
     sz = 1
     for s in lens:
         sz*=s
