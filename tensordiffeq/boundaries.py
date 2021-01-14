@@ -25,6 +25,8 @@ class dirichlectBC(BC):
         self.val = val
         self.var = var
         self.target = target
+        
+        self.compile()
 
     def get_dims_list(self):
         linspace_list = []
