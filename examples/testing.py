@@ -7,7 +7,7 @@ from tensordiffeq.models import CollocationSolver1D
 from tensordiffeq.domains import DomainND
 from tensordiffeq.boundaries import *
 
-Domain = DomainND(["x", "t"])
+Domain = DomainND(["x", 'y', "t"])
 
 Domain.add("x", [1.0,-1.0], 512)
 Domain.add("y", [1.0, -1.0], 512)

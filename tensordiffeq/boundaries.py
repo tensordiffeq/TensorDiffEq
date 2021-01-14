@@ -17,6 +17,8 @@ class dirichlectBC(BC):
         self.time_var = time_var
         self.target = target
 
+        self.create_input()
+
     def get_dims_list(self):
         linspace_list = []
         iter_ids = np.setdiff1d(self.domain.domain_ids, self.var).tolist()
@@ -28,9 +30,20 @@ class dirichlectBC(BC):
 
     def create_target_input_repeat(self):
         search_key = self.var
+        fidelity_key = "fidelity"
+        #print(self.domain.domaindict)
         self.dict_ = next(item for item in self.domain.domaindict if item["identifier"] == search_key)
-        self.dict_t = next(item for item in self.domain.domaindict if item["identifier"] == self.time_var)
-        repeated_value = np.repeat(self.dict_[(self.var+self.target)], self.dict_t[(self.time_var+"fidelity")])
+        self.dicts_ = [item for item in self.domain.domaindict if item['identifier'] != search_key]
+        fids = []
+        for dict_ in self.dicts_:
+            res = [val for key, val in dict_.items() if fidelity_key in key]
+            fids.append(res)
+        reps = np.prod(fids)
+        print(reps)
+        #self.dicts_ = next(item for item in self.domain.domaindict if item["identifier"] != self.time_var)
+        print(self.dicts_)
+
+        repeated_value = np.repeat(self.dict_[(self.var+self.target)],reps)
         return repeated_value
 
 
@@ -38,11 +51,14 @@ class dirichlectBC(BC):
         repeated_value = self.create_target_input_repeat()
         repeated_value = np.reshape(repeated_value, (-1,1))
         mesh = flatten_and_stack(multimesh(self.get_dims_list()))
-        .index("bar")
+        #.index("bar")
         print(mesh)
         #linsp = np.meshgrid(self.dict_t[(self.time_var+"linspace")])
-
-        input = tf.concat([repeated_value, mesh], 1)
+        print(np.shape(repeated_value.flatten()))
+        mesh = np.insert(mesh, self.domain.vars.index(self.var), repeated_value.flatten(), axis=1)
+        print(mesh)
+        #input = tf.concat([repeated_value, mesh], 1)
+        print(input)
 
     def loss(self, pred):
         return MSE(pred, val)
