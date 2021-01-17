@@ -2,7 +2,7 @@ import numpy as np
 import tensorflow as tf
 import scipy.io
 import tensordiffeq as tdq
-from tensordiffeq.models import CollocationSolver1D
+from tensordiffeq.models_new import CollocationSolverND
 
 def f_model(u_model, x, t):
     u = u_model(tf.concat([x,t],1))
