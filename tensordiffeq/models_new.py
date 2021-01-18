@@ -151,7 +151,7 @@ class CollocationSolverND:
         return u_star.numpy(), f_u_star.numpy()
 
 
-class CollocationSolver2D(CollocationSolver1D):
+class CollocationSolver2D(CollocationSolverND):
 
     def compile(self, layer_sizes, f_model, x_f, y_f, t_f, x0, t0, u0, x_lb, y_lb, t_lb, x_ub, y_ub, t_ub,
                 isPeriodic=False, u_x_model=None, isAdaptive=False, col_weights=None, u_weights=None, g=None):

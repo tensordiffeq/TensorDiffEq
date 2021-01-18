@@ -23,20 +23,22 @@ class Rectangle3D(Rectangle2D):
         self.z_lb = zlim[1]
 
 class DomainND:
-    def __init__(self, vars):
-        self.vars = vars
+    def __init__(self, var, time_var=None):
+        self.vars = var
         self.domaindict = []
         self.domain_ids = []
+        self.time_var = time_var
 
-    def create_domains(self):
-        doms = []
-        for i, val in self.vals:
-            doms.append(np.linspace(val[0], val[1], self.fidel[i]))
-        return doms
 
-    def create_mesh(self, doms):
-        mesh = np.meshgrid(doms)
-        return mesh
+    # def create_domains(self):
+    #     doms = []
+    #     for i, val in self.vals:
+    #         doms.append(np.linspace(val[0], val[1], self.fidel[i]))
+    #     return doms
+    #
+    # def create_mesh(self, doms):
+    #     mesh = np.meshgrid(doms)
+    #     return mesh
 
     def add(self, token, vals, fidel):
         self.domain_ids.append(token)

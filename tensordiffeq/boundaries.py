@@ -4,44 +4,45 @@ import tensorflow as tf
 from .utils import multimesh, flatten_and_stack, MSE
 
 
+def get_linspace(dict_):
+    lin_key = "linspace"
+    return [val for key, val in dict_.items() if lin_key in key][0]
+
+
 class BC(DomainND):
     def __init__(self):
-        self.doms = self.domain.create_domains()
-        self.grid = self.domain.create_mesh()
+        self.dicts_ = [item for item in self.domain.domaindict if item['identifier'] != self.var]
+        self.dict_ = next(item for item in self.domain.domaindict if item["identifier"] == self.var)
 
     def compile(self):
-        self.out = self.create_input()
+        self.input = self.create_input()
 
     def predict_values(self, model):
-        self.preds = model(self.out)
+        self.preds = model(self.input)
 
     def loss(self):
         return MSE(self.preds, self.val)
 
+    def get_dict(self, var):
+        return next(item for item in self.domain.domaindict if item["identifier"] == var)
+
+    def get_not_dims(self, var):
+        dims = []
+        for dict_ in self.dicts_:
+            dims.append(get_linspace(dict_))
+        return dims
+
 
 class dirichlectBC(BC):
     def __init__(self, domain, val, var, target):
-        super().__init__()
-        self.dicts_ = [item for item in self.domain.domaindict if item['identifier'] != search_key]
-        self.dict_ = next(item for item in self.domain.domaindict if item["identifier"] == search_key)
         self.domain = domain
         self.val = val
         self.var = var
         self.target = target
-
+        super().__init__()
         self.compile()
 
-    def get_dims_list(self):
-        linspace_list = []
-        iter_ids = np.setdiff1d(self.domain.domain_ids, self.var).tolist()
-        for id_ in (iter_ids):
-            # self.dict_ = next(item for item in self.domain.domaindict if item["identifier"] == id)
-            # print(self.domain.domaindict)
-            linspace_list.append(self.dict_[(id_ + "linspace")])
-        return linspace_list
-
     def create_target_input_repeat(self):
-        search_key = self.var
         fidelity_key = "fidelity"
         # print(self.domain.domaindict)
         fids = []
@@ -55,9 +56,14 @@ class dirichlectBC(BC):
     def create_input(self):
         repeated_value = self.create_target_input_repeat()
         repeated_value = np.reshape(repeated_value, (-1, 1))
-        mesh = flatten_and_stack(multimesh(self.get_dims_list()))
+        mesh = flatten_and_stack(multimesh(self.get_not_dims(self.var)))
         mesh = np.insert(mesh, self.domain.vars.index(self.var), repeated_value.flatten(), axis=1)
         return mesh
+
+
+def get_function_out(func, var, dict_):
+    linspace = get_linspace(dict_)
+    return func(linspace)
 
 
 class IC(BC):
@@ -65,6 +71,29 @@ class IC(BC):
         self.domain = domain
         self.fun = fun
         self.vars = var
+        self.dicts_ = [item for item in self.domain.domaindict if item['identifier'] != self.domain.time_var]
+        self.dict_ = next(item for item in self.domain.domaindict if item["identifier"] == self.domain.time_var)
+        self.compile()
+        # super().__init__()
+
+    def create_input(self):
+        dims = self.get_not_dims(self.domain.time_var)
+        # vals = np.reshape(fun_vals, (-1, len(self.vars)))
+        mesh = flatten_and_stack(multimesh(dims))
+        t_repeat = np.repeat(0.0, len(mesh))
+        mesh = np.concatenate((mesh, np.reshape(t_repeat, (-1, 1))), axis=1)
+        print(mesh)
+        return mesh
+
+    def create_target(self):
+        fun_vals = []
+        for i, var_ in enumerate(self.vars):
+            arg_list = []
+            for j, var in enumerate(var_):
+                var_dict = self.get_dict(var)
+                arg_list.append(get_linspace(var_dict))
+            inp = flatten_and_stack(multimesh(arg_list))
+            fun_vals.append(self.fun[i](*inp.T))
 
 
 class periodicBC(BC):
