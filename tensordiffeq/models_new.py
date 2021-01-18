@@ -29,7 +29,7 @@ class CollocationSolverND:
                 raise Exception("Periodic BC is listed but no u_x model is defined!")
             else:
                 self.u_x_model = get_tf_model(u_x_model)
-
+        self.u_model = neural_net(layer_sizes)
         self.col_weights = col_weights
         self.u_weights = u_weights
         self.build_loss()
@@ -41,12 +41,14 @@ class CollocationSolverND:
         if not isAdaptive:
             if self.col_weights is not None and self.u_weights is not None:
                 raise Exception(
-                    "Adaptive weights are turned off but weight vectors were provided. Set the weight vectors to \"none\" to continue")
+                    "Adaptive weights are turned off but weight vectors were provided. Set the weight vectors to "
+                    "\"none\" to continue")
 
     def compile_data(self, x, t, y):
         if not self.assimilate:
             raise Exception(
-                "Assimilate needs to be set to 'true' for data assimilation. Re-initialize CollocationSolver1D with assimilate=True.")
+                "Assimilate needs to be set to 'true' for data assimilation. Re-initialize CollocationSolver1D with "
+                "assimilate=True.")
         self.data_x = x
         self.data_t = t
         self.data_s = y
@@ -57,18 +59,19 @@ class CollocationSolverND:
         for bc in self.bcs:
             loss.append(bc.loss())
 
-        if self.dist:
-            f_u_pred = self.f_model(self.u_model, self.dist_x_f, self.dist_t_f)
-        else:
-            f_u_pred = self.f_model(self.u_model, self.x_f, self.t_f)
+        # if self.dist:
+        #     f_u_pred = self.f_model(self.u_model, self.dist_x_f, self.dist_t_f)
+
+        f_u_pred = self.f_model(self.u_model, self.domain.X_f)
+        mse_f_u = MSE(f_u_pred, constant(0.0))
         for ele in range(0, len(loss)):
             total = total + loss[ele]
-        self.loss = total + f_u_pred
+        self.loss = total + mse_f_u
 
     def update_loss(self):
         for bc in self.bcs:
-            bc.predict_values(self.u_model)
-        self.build_loss()
+            bc.update_values(self.u_model)
+        # self.build_loss()
 
         #
         #

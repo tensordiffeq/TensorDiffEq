@@ -17,11 +17,8 @@ class BC(DomainND):
     def compile(self):
         self.input = self.create_input()
 
-    def predict_values(self, model):
-        self.preds = model(self.input)
-
-    def loss(self):
-        return MSE(self.preds, self.val)
+    def update_values(self, model):
+        tf.compat.v1.assign(self.preds, model(self.input))
 
     def get_dict(self, var):
         return next(item for item in self.domain.domaindict if item["identifier"] == var)
@@ -60,6 +57,9 @@ class dirichlectBC(BC):
         mesh = np.insert(mesh, self.domain.vars.index(self.var), repeated_value.flatten(), axis=1)
         return mesh
 
+    def loss(self):
+        return MSE(self.preds, self.val)
+
 
 def get_function_out(func, var, dict_):
     linspace = get_linspace(dict_)
@@ -82,7 +82,6 @@ class IC(BC):
         mesh = flatten_and_stack(multimesh(dims))
         t_repeat = np.repeat(0.0, len(mesh))
         mesh = np.concatenate((mesh, np.reshape(t_repeat, (-1, 1))), axis=1)
-        print(mesh)
         return mesh
 
     def create_target(self):
@@ -95,6 +94,8 @@ class IC(BC):
             inp = flatten_and_stack(multimesh(arg_list))
             fun_vals.append(self.fun[i](*inp.T))
 
+    def loss(self):
+        MSE(self.preds, self.val)
 
 class periodicBC(BC):
     def __init__(self, domain, var):

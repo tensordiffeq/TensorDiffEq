@@ -8,13 +8,16 @@ from tensordiffeq.models_new import CollocationSolverND
 from tensordiffeq.domains import DomainND
 from tensordiffeq.boundaries import *
 
-Domain = DomainND(["x", "y", "t"], time_var='t')
+Domain = DomainND(["x", "t"], time_var='t')
 
 Domain.add("x", [-1.0, 1.0], 512)
-Domain.add("y", [-1.0, 1.0], 512)
-#Domain.add("z", [-1.0, 1.0], 512)
+# Domain.add("y", [-1.0, 1.0], 512)
+# Domain.add("z", [-1.0, 1.0], 512)
 Domain.add("t", [0.0, 1.0], 100)
 
+N_f = 20000
+Domain.generate_collocation_points(N_f)
+print(Domain.X_f)
 
 def func_ic(x):
     return np.sin(x * math.pi)
@@ -24,9 +27,10 @@ def funcxy_ic(x, y):
     return np.sin(x * math.pi) + np.sin(y * math.pi)
 
 
-init = IC(Domain, [funcxy_ic], var=[('x', 'y')])
-init.create_target()
+init = IC(Domain, [func_ic], var=[('x')])
+
 upper_x = dirichlectBC(Domain, val=0.0, var='x', target="upper")
+
 lower_x = dirichlectBC(Domain, val=0.0, var='x', target="lower")
 
 BCs = [init, upper_x, lower_x]
@@ -45,6 +49,8 @@ def f_model(u_model, inputs):
     return f_u
 
 
-model = CollocationSolverND()
+layer_sizes = [2, 128, 128, 128, 128, 1]
 
+model = CollocationSolverND()
+model.compile(layer_sizes,f_model, Domain, BCs)
 model.fit(Domain, BCs, f_model, ...)
