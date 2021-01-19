@@ -1,7 +1,7 @@
 from tensordiffeq.domains import *
 import numpy as np
 import tensorflow as tf
-from .utils import multimesh, flatten_and_stack, MSE
+from .utils import multimesh, flatten_and_stack, MSE, convertTensor
 
 
 def get_linspace(dict_):
@@ -17,8 +17,12 @@ class BC(DomainND):
     def compile(self):
         self.input = self.create_input()
 
+    def preds_init(self, model):
+        self.preds = model(self.input)
+
+    @tf.function
     def update_values(self, model):
-        tf.compat.v1.assign(self.preds, model(self.input))
+        self.preds = model(self.input)
 
     def get_dict(self, var):
         return next(item for item in self.domain.domaindict if item["identifier"] == var)
@@ -74,6 +78,7 @@ class IC(BC):
         self.dicts_ = [item for item in self.domain.domaindict if item['identifier'] != self.domain.time_var]
         self.dict_ = next(item for item in self.domain.domaindict if item["identifier"] == self.domain.time_var)
         self.compile()
+        self.create_target()
         # super().__init__()
 
     def create_input(self):
@@ -93,9 +98,10 @@ class IC(BC):
                 arg_list.append(get_linspace(var_dict))
             inp = flatten_and_stack(multimesh(arg_list))
             fun_vals.append(self.fun[i](*inp.T))
+        self.val = convertTensor(np.reshape(fun_vals, (-1,1)))
 
     def loss(self):
-        MSE(self.preds, self.val)
+        return MSE(self.preds, self.val)
 
 class periodicBC(BC):
     def __init__(self, domain, var):

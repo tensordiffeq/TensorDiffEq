@@ -36,10 +36,8 @@ lower_x = dirichlectBC(Domain, val=0.0, var='x', target="lower")
 BCs = [init, upper_x, lower_x]
 
 
-def f_model(u_model, inputs):
-    x = tf.gather(inputs, [0])
-    t = tf.gather(inputs, [1])
-    u = u_model(inputs)
+def f_model(u_model, x, t):
+    u = u_model(tf.concat([x, t], 1))
     u_x = tf.gradients(u, x)
     u_xx = tf.gradients(u_x, x)
     u_t = tf.gradients(u, t)
@@ -52,5 +50,5 @@ def f_model(u_model, inputs):
 layer_sizes = [2, 128, 128, 128, 128, 1]
 
 model = CollocationSolverND()
-model.compile(layer_sizes,f_model, Domain, BCs)
-model.fit(Domain, BCs, f_model, ...)
+model.compile(layer_sizes, f_model, Domain, BCs)
+model.fit(tf_iter = 500, newton_iter = 500)

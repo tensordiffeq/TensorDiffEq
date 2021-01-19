@@ -12,7 +12,8 @@ os.environ["TF_GPU_THREAD_MODE"] = "gpu_private"
 
 
 def fit(obj, tf_iter, newton_iter, batch_sz=None, newton_eager=True):
-    obj.u_model = neural_net(obj.layer_sizes)
+    #obj.u_model = neural_net(obj.layer_sizes)
+    obj.build_loss()
     # Can adjust batch size for collocation points, here we set it to N_f
     if batch_sz is not None:
         obj.batch_sz = batch_sz

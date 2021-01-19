@@ -4,10 +4,11 @@ import tensorflow as tf
 import scipy.io
 import tensordiffeq as tdq
 import matplotlib.pyplot as plt
-from tensordiffeq.models import CollocationSolver1D
+from tensordiffeq.models_new_tf_func import CollocationSolver1D
 
-def f_model(u_model, x, t):
-    u = u_model(tf.concat([x,t],1))
+def f_model(u_model, inputs):
+    u = u_model(inputs)
+    x = tf.gather(inputs, [0])
     u_x = tf.gradients(u, x)
     u_xx = tf.gradients(u_x, x)
     u_t = tf.gradients(u,t)

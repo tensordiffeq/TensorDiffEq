@@ -7,6 +7,7 @@ import matplotlib.pyplot as plt
 from tensordiffeq.models import CollocationSolver1D
 
 def f_model(u_model, x, t):
+    tf.print(np.shape(x))
     u = u_model(tf.concat([x,t],1))
     u_x = tf.gradients(u, x)
     u_xx = tf.gradients(u_x, x)

@@ -32,7 +32,7 @@ class CollocationSolverND:
         self.u_model = neural_net(layer_sizes)
         self.col_weights = col_weights
         self.u_weights = u_weights
-        self.build_loss()
+
 
         if isAdaptive:
             self.isAdaptive = True
@@ -54,30 +54,35 @@ class CollocationSolverND:
         self.data_s = y
 
     def build_loss(self):
-        loss = []
-        total = None
-        for bc in self.bcs:
-            loss.append(bc.loss())
-
+        self.loss = tf.Variable(0.0, dtype=tf.float32)
+        total = 0.0
+        # for bc in self.bcs:
+        #     bc.preds_init(self.u_model)
+        #     self.loss = tf.math.add(self.loss, MSE(bc.preds, bc.val))
+        # print(self.loss)
         # if self.dist:
         #     f_u_pred = self.f_model(self.u_model, self.dist_x_f, self.dist_t_f)
-
-        f_u_pred = self.f_model(self.u_model, self.domain.X_f)
+        tmp = []
+        for i, vec in enumerate(self.domain.X_f.T):
+            tmp.append(np.reshape(vec, (-1,1)))
+        self.X_f_in = np.asarray(tmp)
+        self.x_f = tmp[0] # REMOVE
+        f_u_pred = self.f_model(self.u_model, *self.X_f_in)
         mse_f_u = MSE(f_u_pred, constant(0.0))
-        for ele in range(0, len(loss)):
-            total = total + loss[ele]
-        self.loss = total + mse_f_u
+        # for ele in range(0, len(loss)):
+        #     total = total + loss[ele]
+        #print(self.u_model(self.bcs[0].input))
+        self.loss = MSE(self.u_model(self.bcs[0].input), self.bcs[0].val)
+        # self.loss = tf.convert_to_tensor(self.loss)
 
     def update_loss(self):
+        loss_tmp = 0.0
         for bc in self.bcs:
-            bc.update_values(self.u_model)
+            #bc.update_values(self.u_model)
+            loss_tmp = tf.math.add(loss_tmp, MSE(self.u_model(bc.input), bc.val))
+        return loss_tmp
         # self.build_loss()
 
-        #
-        #
-        #
-        #
-        #
         # if self.dist:
         #
         #     f_u_pred = self.f_model(self.u_model, self.dist_x_f, self.dist_t_f)
@@ -114,10 +119,14 @@ class CollocationSolverND:
         #     return mse_0_u + mse_b_u + mse_f_u, mse_0_u, mse_b_u, mse_f_u
 
     def grad(self):
-        self.update_loss()
+        #self.update_loss()
         with tf.GradientTape() as tape:
-            loss_value = self.loss
-            grads = tape.gradient(loss_value, self.variables)
+            loss_value = self.update_loss()
+            print(self.loss)
+            print(self.variables)
+            grads = tape.gradient(loss_value, self.u_model.trainable_variables)
+            print(grads)
+
         return loss_value, grads
 
     def fit(self, tf_iter, newton_iter, batch_sz=None, newton_eager=True):
