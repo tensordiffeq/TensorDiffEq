@@ -29,9 +29,14 @@ class CollocationSolverND:
                 raise Exception("Periodic BC is listed but no u_x model is defined!")
             else:
                 self.u_x_model = get_tf_model(u_x_model)
-        self.u_model = neural_net(layer_sizes)
         self.col_weights = col_weights
         self.u_weights = u_weights
+        self.X_f_dims = tf.shape(self.domain.X_f)
+        self.X_f_len = tf.slice(self.X_f_dims, [0], [1]).numpy()
+        tmp = []
+        for i, vec in enumerate(self.domain.X_f.T):
+            tmp.append(np.reshape(vec, (-1,1)))
+        self.X_f_in = np.asarray(tmp)
 
 
         if isAdaptive:
@@ -62,10 +67,7 @@ class CollocationSolverND:
         # print(self.loss)
         # if self.dist:
         #     f_u_pred = self.f_model(self.u_model, self.dist_x_f, self.dist_t_f)
-        tmp = []
-        for i, vec in enumerate(self.domain.X_f.T):
-            tmp.append(np.reshape(vec, (-1,1)))
-        self.X_f_in = np.asarray(tmp)
+
         self.x_f = tmp[0] # REMOVE
         f_u_pred = self.f_model(self.u_model, *self.X_f_in)
         mse_f_u = MSE(f_u_pred, constant(0.0))
@@ -78,8 +80,10 @@ class CollocationSolverND:
     def update_loss(self):
         loss_tmp = 0.0
         for bc in self.bcs:
-            #bc.update_values(self.u_model)
             loss_tmp = tf.math.add(loss_tmp, MSE(self.u_model(bc.input), bc.val))
+        f_u_pred = self.f_model(self.u_model, *self.X_f_in)
+        mse_f_u = MSE(f_u_pred, constant(0.0))
+        loss_tmp = tf.math.add(loss_tmp, mse_f_u)
         return loss_tmp
         # self.build_loss()
 
@@ -122,9 +126,9 @@ class CollocationSolverND:
         #self.update_loss()
         with tf.GradientTape() as tape:
             loss_value = self.update_loss()
-            print(self.loss)
+            print(loss_value)
             print(self.variables)
-            grads = tape.gradient(loss_value, self.u_model.trainable_variables)
+            grads = tape.gradient(loss_value, self.variables)
             print(grads)
 
         return loss_value, grads
@@ -142,7 +146,7 @@ class CollocationSolverND:
         def loss_and_flat_grad(w):
             with tf.GradientTape() as tape:
                 set_weights(self.u_model, w, self.sizes_w, self.sizes_b)
-                loss_value, _, _, _ = self.loss()
+                loss_value = self.update_loss()
             grad = tape.gradient(loss_value, self.u_model.trainable_variables)
             grad_flat = []
             for g in grad:

@@ -12,17 +12,18 @@ os.environ["TF_GPU_THREAD_MODE"] = "gpu_private"
 
 
 def fit(obj, tf_iter, newton_iter, batch_sz=None, newton_eager=True):
-    #obj.u_model = neural_net(obj.layer_sizes)
-    obj.build_loss()
+    obj.u_model = neural_net(obj.layer_sizes)
+    #obj.build_loss()
     # Can adjust batch size for collocation points, here we set it to N_f
     if batch_sz is not None:
         obj.batch_sz = batch_sz
     else:
-        obj.batch_sz = len(obj.x_f)
+        obj.batch_sz = obj.X_f_len
+        #obj.batch_sz = len(obj.x_f)
 
-    N_f = len(obj.x_f)
-    n_batches = N_f // obj.batch_sz
-
+    N_f = obj.X_f_len
+    #N_f = len(obj.x_f)
+    n_batches = int(N_f // obj.batch_sz)
     start_time = time.time()
     obj.tf_optimizer = tf.keras.optimizers.Adam(lr=0.005, beta_1=.99)
     obj.tf_optimizer_weights = tf.keras.optimizers.Adam(lr=0.005, beta_1=.99)
@@ -32,14 +33,17 @@ def fit(obj, tf_iter, newton_iter, batch_sz=None, newton_eager=True):
     obj.grad = tf.function(obj.grad)
     print("starting Adam training")
     # tf.profiler.experimental.start('../cache/tblogdir1')
+    print(n_batches)
+    print(tf_iter)
     for epoch in range(tf_iter):
 
-        loss_value, mse_0, mse_b, mse_f = train_op(obj, n_batches)
+        loss_value = train_op(obj, n_batches)
 
         if epoch % 100 == 0:
             elapsed = time.time() - start_time
             print('It: %d, Time: %.2f' % (epoch, elapsed))
-            tf.print(f"mse_0: {mse_0}  mse_b  {mse_b}  mse_f: {mse_f}   total loss: {loss_value}")
+            #tf.print(f"mse_0: {mse_0}  mse_b  {mse_b}  mse_f: {mse_f}   total loss: {loss_value}")
+            tf.print(f"total loss: {loss_value}")
             start_time = time.time()
     # tf.profiler.experimental.stop()
 

@@ -97,7 +97,7 @@ class CollocationSolver1D():
         with tf.GradientTape() as tape:
             loss_value, mse_0, mse_b, mse_f = self.loss()
             grads = tape.gradient(loss_value, self.variables)
-        return loss_value, mse_0, mse_b, mse_f, grads
+        return loss_value,  grads
 
 
     def fit(self, tf_iter, newton_iter, batch_sz = None, newton_eager = True):
