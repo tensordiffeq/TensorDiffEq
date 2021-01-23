@@ -39,6 +39,7 @@ class CollocationSolverND:
         self.X_f_in = np.asarray(tmp)
 
 
+
         if isAdaptive:
             self.isAdaptive = True
             if self.col_weights is None and self.u_weights is None:
@@ -61,10 +62,17 @@ class CollocationSolverND:
     def update_loss(self):
         loss_tmp = 0.0
         for bc in self.bcs:
-            loss_tmp = tf.math.add(loss_tmp, MSE(self.u_model(bc.input), bc.val))
             if bc.isPeriodic:
-                periodic_loss = MSE(bc.deriv_model(self.u_model, bc.upper_), bc.deriv_model(self.u_model, bc.lower_))
-                loss_tmp = tf.math.add(loss_tmp, periodic_loss)
+                for i, dim in enumerate(bc.var):
+                    for j, lst in enumerate(dim):
+                        for k, tup in enumerate(lst):
+                            upper = bc.u_x_model(self.u_model, bc.upper[i])[j][k]
+                            lower = bc.u_x_model(self.u_model, bc.lower[i])[j][k]
+                            msq = MSE(upper, lower)
+                            loss_tmp = tf.math.add(loss_tmp, msq)
+            else:
+                loss_tmp = tf.math.add(loss_tmp, MSE(self.u_model(bc.input), bc.val))
+
         f_u_pred = self.f_model(self.u_model, *self.X_f_in)
         mse_f_u = MSE(f_u_pred, constant(0.0))
         loss_tmp = tf.math.add(loss_tmp, mse_f_u)
