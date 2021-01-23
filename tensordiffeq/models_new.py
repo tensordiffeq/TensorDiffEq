@@ -58,29 +58,13 @@ class CollocationSolverND:
         self.data_t = t
         self.data_s = y
 
-    def build_loss(self):
-        self.loss = tf.Variable(0.0, dtype=tf.float32)
-        total = 0.0
-        # for bc in self.bcs:
-        #     bc.preds_init(self.u_model)
-        #     self.loss = tf.math.add(self.loss, MSE(bc.preds, bc.val))
-        # print(self.loss)
-        # if self.dist:
-        #     f_u_pred = self.f_model(self.u_model, self.dist_x_f, self.dist_t_f)
-
-        self.x_f = tmp[0] # REMOVE
-        f_u_pred = self.f_model(self.u_model, *self.X_f_in)
-        mse_f_u = MSE(f_u_pred, constant(0.0))
-        # for ele in range(0, len(loss)):
-        #     total = total + loss[ele]
-        #print(self.u_model(self.bcs[0].input))
-        self.loss = MSE(self.u_model(self.bcs[0].input), self.bcs[0].val)
-        # self.loss = tf.convert_to_tensor(self.loss)
-
     def update_loss(self):
         loss_tmp = 0.0
         for bc in self.bcs:
             loss_tmp = tf.math.add(loss_tmp, MSE(self.u_model(bc.input), bc.val))
+            if bc.isPeriodic:
+                periodic_loss = MSE(bc.deriv_model(self.u_model, bc.upper_), bc.deriv_model(self.u_model, bc.lower_))
+                loss_tmp = tf.math.add(loss_tmp, periodic_loss)
         f_u_pred = self.f_model(self.u_model, *self.X_f_in)
         mse_f_u = MSE(f_u_pred, constant(0.0))
         loss_tmp = tf.math.add(loss_tmp, mse_f_u)

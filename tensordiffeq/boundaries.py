@@ -11,6 +11,7 @@ def get_linspace(dict_):
 
 class BC(DomainND):
     def __init__(self):
+        self.isPeriodic = False
         self.dicts_ = [item for item in self.domain.domaindict if item['identifier'] != self.var]
         self.dict_ = next(item for item in self.domain.domaindict if item["identifier"] == self.var)
 
@@ -29,9 +30,24 @@ class BC(DomainND):
 
     def get_not_dims(self, var):
         dims = []
+        self.dicts_ = [item for item in self.domain.domaindict if item['identifier'] != var]
         for dict_ in self.dicts_:
             dims.append(get_linspace(dict_))
         return dims
+
+    def create_target_input_repeat(self, var, target):
+        fidelity_key = "fidelity"
+        # print(self.domain.domaindict)
+        fids = []
+        for dict_ in self.dicts_:
+            res = [val for key, val in dict_.items() if fidelity_key in key]
+            fids.append(res)
+        reps = np.prod(fids)
+        if target is str:
+            repeated_value = np.repeat(self.dict_[(var + target)], reps)
+        else:
+            repeated_value = np.repeat(target, reps)
+        return repeated_value
 
 
 class dirichlectBC(BC):
@@ -43,19 +59,8 @@ class dirichlectBC(BC):
         super().__init__()
         self.compile()
 
-    def create_target_input_repeat(self):
-        fidelity_key = "fidelity"
-        # print(self.domain.domaindict)
-        fids = []
-        for dict_ in self.dicts_:
-            res = [val for key, val in dict_.items() if fidelity_key in key]
-            fids.append(res)
-        reps = np.prod(fids)
-        repeated_value = np.repeat(self.dict_[(self.var + self.target)], reps)
-        return repeated_value
-
     def create_input(self):
-        repeated_value = self.create_target_input_repeat()
+        repeated_value = self.create_target_input_repeat(self.var, self.target)
         repeated_value = np.reshape(repeated_value, (-1, 1))
         mesh = flatten_and_stack(multimesh(self.get_not_dims(self.var)))
         mesh = np.insert(mesh, self.domain.vars.index(self.var), repeated_value.flatten(), axis=1)
@@ -98,17 +103,45 @@ class IC(BC):
                 arg_list.append(get_linspace(var_dict))
             inp = flatten_and_stack(multimesh(arg_list))
             fun_vals.append(self.fun[i](*inp.T))
-        self.val = convertTensor(np.reshape(fun_vals, (-1,1)))
+        self.val = convertTensor(np.reshape(fun_vals, (-1, 1)))
 
     def loss(self):
         return MSE(self.preds, self.val)
 
 class periodicBC(BC):
     def __init__(self, domain, var):
-
+        self.var = var
         self.domain = domain
+        #super().__init__()
+        self.isPeriodic = True
+        #self.dicts_ = [item for item in self.domain.domaindict]
+        #self.dict_ = next(item for item in self.domain.domaindict if item["identifier"] == var)
 
-    def u_x_model(self, u_model, nn_input):
+    def get_input_upper_lower(self, var):
+        #for var in self.dict_["range"]:
+        self.upper_repeat = self.create_target_input_repeat(var, self.dict_["range"][1])
+        self.lower_repeat = self.create_target_input_repeat(var, self.dict_["range"][0])
+        print(np.shape(self.upper_repeat))
+
+
+    def compile(self):
+        self.str_out = []
+        upper = []
+        lower = []
+        for var in self.var:
+            self.dicts_ = [item for item in self.domain.domaindict if item["identifier"] != var]
+            self.dict_ = next(item for item in self.domain.domaindict if item["identifier"] == var)
+            self.get_input_upper_lower(var)
+            mesh = flatten_and_stack(multimesh(self.get_not_dims(var)))
+            upper.append(np.insert(mesh, self.domain.vars.index(var), self.upper_repeat.flatten(), axis=1))
+            lower.append(np.insert(mesh, self.domain.vars.index(var), self.lower_repeat.flatten(), axis=1))
+        print("x, y lower")
+        print(lower)
+        print("x, y upper")
+        print(upper)
+
+
+    def u_x_model(self, u_model):
         u = u_model(nn_input)
         u_x = tf.gradients(u, nn_input[:, 0:1])
         return u, u_x
@@ -126,3 +159,6 @@ class periodicBC(BC):
         u_lb_pred, u_x_lb_pred = self.u_x_model(self.u_model, self.x_lb, self.t_lb)
         u_ub_pred, u_x_ub_pred = self.u_x_model(self.u_model, self.x_ub, self.t_ub)
         return
+
+
+

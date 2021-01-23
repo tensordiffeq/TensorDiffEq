@@ -8,9 +8,10 @@ from tensordiffeq.models_new import CollocationSolverND
 from tensordiffeq.domains import DomainND
 from tensordiffeq.boundaries import *
 
-Domain = DomainND(["x", "t"], time_var='t')
+Domain = DomainND(["x", "y", "t"], time_var='t')
 
 Domain.add("x", [-1.0, 1.0], 256)
+Domain.add("y", [-1.0, 1.0], 256)
 Domain.add("t", [0.0, 1.0], 100)
 
 N_f = 20000
@@ -18,14 +19,18 @@ Domain.generate_collocation_points(N_f)
 
 
 def func_ic(x):
-    return np.sin(x * math.pi) + 5
+    return -np.sin(x * math.pi)
 
 
 init = IC(Domain, [func_ic], var=['x'])
 
-upper_x = dirichlectBC(Domain, val=5.0, var='x', target="upper")
+x_periodic = periodicBC(Domain, ["x", "y"])
+x_periodic.compile()
+# upper_x = dirichlectBC(Domain, val=0.0, var='x', target="upper")
+#
+# lower_x = dirichlectBC(Domain, val=0.0, var='x', target="lower")
 
-lower_x = dirichlectBC(Domain, val=5.0, var='x', target="lower")
+
 
 BCs = [init, upper_x, lower_x]
 

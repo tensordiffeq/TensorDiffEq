@@ -81,7 +81,7 @@ def lbfgs_op(func, init_params, newton_iter):
     return results
 
 
-@tf.function
+@tf.function()
 def train_op(obj, n_batches):
     for i in range(n_batches):
         if obj.isAdaptive:
