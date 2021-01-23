@@ -18,22 +18,13 @@ N_f = 20000
 Domain.generate_collocation_points(N_f)
 
 
-def func_ic(x, y):
-    return -np.sin(x * math.pi) + np.sin(y * math.pi)
+def func_ic(x):
+    return -np.sin(x * math.pi)
 
 
-init = IC(Domain, [func_ic], var=['x', "y"])
+init = IC(Domain, [func_ic], var=['x'])
 
-# Conditions to be considered at the boundaries for the periodic BC
-def deriv_model(u_model, x, y, t):
-    print(np.shape(x))
-    print(np.shape(t))
-    u = u_model(tf.concat([x, t], 1))
-    u_x = tf.gradients(u, x)[0]
-    u_y = tf.gradients(u, y)[0]
-    return u, u_x, u_y
-
-x_periodic = periodicBC(Domain, ["x", "y"], [deriv_model])
+x_periodic = periodicBC(Domain, ["x", "y"])
 x_periodic.compile()
 # upper_x = dirichlectBC(Domain, val=0.0, var='x', target="upper")
 #
@@ -41,11 +32,11 @@ x_periodic.compile()
 
 
 
-BCs = [init, x_periodic]
+BCs = [init, upper_x, lower_x]
 
 
-def f_model(u_model, x, y, t):
-    u = u_model(tf.concat([x, y, t], 1))
+def f_model(u_model, x, t):
+    u = u_model(tf.concat([x, t], 1))
     u_x = tf.gradients(u, x)
     u_xx = tf.gradients(u_x, x)
     u_t = tf.gradients(u, t)
@@ -55,7 +46,7 @@ def f_model(u_model, x, y, t):
     return f_u
 
 
-layer_sizes = [3, 128, 128, 128, 128, 1]
+layer_sizes = [2, 128, 128, 128, 128, 1]
 
 model = CollocationSolverND()
 model.compile(layer_sizes, f_model, Domain, BCs)

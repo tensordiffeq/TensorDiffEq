@@ -1,7 +1,7 @@
 from tensordiffeq.domains import *
 import numpy as np
 import tensorflow as tf
-from .utils import multimesh, flatten_and_stack, MSE, convertTensor, get_tf_model
+from .utils import multimesh, flatten_and_stack, MSE, convertTensor
 
 
 def get_linspace(dict_):
@@ -77,7 +77,6 @@ def get_function_out(func, var, dict_):
 
 class IC(BC):
     def __init__(self, domain, fun, var):
-        self.isPeriodic = False
         self.domain = domain
         self.fun = fun
         self.vars = var
@@ -85,6 +84,7 @@ class IC(BC):
         self.dict_ = next(item for item in self.domain.domaindict if item["identifier"] == self.domain.time_var)
         self.compile()
         self.create_target()
+        # super().__init__()
 
     def create_input(self):
         dims = self.get_not_dims(self.domain.time_var)
@@ -102,7 +102,6 @@ class IC(BC):
                 var_dict = self.get_dict(var)
                 arg_list.append(get_linspace(var_dict))
             inp = flatten_and_stack(multimesh(arg_list))
-            print(inp.T)
             fun_vals.append(self.fun[i](*inp.T))
         self.val = convertTensor(np.reshape(fun_vals, (-1, 1)))
 
@@ -110,15 +109,13 @@ class IC(BC):
         return MSE(self.preds, self.val)
 
 class periodicBC(BC):
-    def __init__(self, domain, var, deriv_model):
+    def __init__(self, domain, var):
         self.var = var
         self.domain = domain
-        self.deriv_model = [get_tf_model(model) for model in deriv_model]
         #super().__init__()
         self.isPeriodic = True
         #self.dicts_ = [item for item in self.domain.domaindict]
         #self.dict_ = next(item for item in self.domain.domaindict if item["identifier"] == var)
-        self.compile()
 
     def get_input_upper_lower(self, var):
         #for var in self.dict_["range"]:
@@ -129,37 +126,25 @@ class periodicBC(BC):
 
     def compile(self):
         self.str_out = []
-        self.upper = []
-        self.lower = []
+        upper = []
+        lower = []
         for var in self.var:
             self.dicts_ = [item for item in self.domain.domaindict if item["identifier"] != var]
             self.dict_ = next(item for item in self.domain.domaindict if item["identifier"] == var)
             self.get_input_upper_lower(var)
             mesh = flatten_and_stack(multimesh(self.get_not_dims(var)))
-            self.upper.append(np.insert(mesh, self.domain.vars.index(var), self.upper_repeat.flatten(), axis=1))
-            self.lower.append(np.insert(mesh, self.domain.vars.index(var), self.lower_repeat.flatten(), axis=1))
-        outer = []
-        tmp = []
-        for i, lst in enumerate(self.upper):
-            for vec in lst.T:
-                tmp.append(convertTensor(np.reshape(vec, (-1,1))))
-            outer.append(np.asarray(tmp))
-        self.upper = outer
+            upper.append(np.insert(mesh, self.domain.vars.index(var), self.upper_repeat.flatten(), axis=1))
+            lower.append(np.insert(mesh, self.domain.vars.index(var), self.lower_repeat.flatten(), axis=1))
+        print("x, y lower")
+        print(lower)
+        print("x, y upper")
+        print(upper)
 
-        outer = []
-        tmp = []
-        for i, lst in enumerate(self.lower):
-            for vec in lst.T:
-                tmp.append(np.reshape(vec, (-1,1)))
-            outer.append(np.asarray(tmp))
-        self.lower = outer
 
-    def u_x_model(self, u_model, inputs):
-        out = []
-        for model in self.deriv_model:
-            out.append(model(u_model, *inputs))
-        return out
-
+    def u_x_model(self, u_model):
+        u = u_model(nn_input)
+        u_x = tf.gradients(u, nn_input[:, 0:1])
+        return u, u_x
 
     def create_edges(self):
         edges = []
