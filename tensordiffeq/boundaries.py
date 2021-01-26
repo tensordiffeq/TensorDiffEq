@@ -37,7 +37,6 @@ class BC(DomainND):
 
     def create_target_input_repeat(self, var, target):
         fidelity_key = "fidelity"
-        # print(self.domain.domaindict)
         fids = []
         for dict_ in self.dicts_:
             res = [val for key, val in dict_.items() if fidelity_key in key]
@@ -102,11 +101,9 @@ class IC(BC):
         for i, var_ in enumerate(self.vars):
             arg_list = []
             for j, var in enumerate(var_):
-                print(var)
                 var_dict = self.get_dict(var)
                 arg_list.append(get_linspace(var_dict))
             inp = flatten_and_stack(multimesh(arg_list))
-            print(inp.T)
             fun_vals.append(self.fun[i](*inp.T))
         self.val = convertTensor(np.reshape(fun_vals, (-1, 1)))
 
@@ -144,10 +141,7 @@ class periodicBC(BC):
         outer = []
         for i, lst in enumerate(self.upper):
             tmp = []
-            print("in loop")
-            print(lst)
             for vec in lst.T:
-                print(vec)
                 tmp.append(convertTensor(np.reshape(vec, (-1,1))))
             outer.append(np.asarray(tmp))
         self.upper = outer

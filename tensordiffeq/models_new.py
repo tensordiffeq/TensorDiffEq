@@ -58,7 +58,6 @@ class CollocationSolverND:
                 for i, dim in enumerate(bc.var):
                     for j, lst in enumerate(dim):
                         for k, tup in enumerate(lst):
-                            #print(bc.upper[i])
                             upper = bc.u_x_model(self.u_model, bc.upper[i])[j][k]
                             lower = bc.u_x_model(self.u_model, bc.lower[i])[j][k]
                             msq = MSE(upper, lower)
@@ -78,52 +77,11 @@ class CollocationSolverND:
 
         loss_tmp = tf.math.add(loss_tmp, mse_f_u)
         return loss_tmp
-        # self.build_loss()
-
-        # if self.dist:
-        #
-        #     f_u_pred = self.f_model(self.u_model, self.dist_x_f, self.dist_t_f)
-        # else:
-        #     f_u_pred = self.f_model(self.u_model, self.x_f, self.t_f)
-        #
-        # u0_pred = self.u_model(tf.concat([self.x0, self.t0], 1))
-        #
-        # if self.periodicBC:
-        #     u_lb_pred, u_x_lb_pred = self.u_x_model(self.u_model, self.x_lb, self.t_lb)
-        #     u_ub_pred, u_x_ub_pred = self.u_x_model(self.u_model, self.x_ub, self.t_ub)
-        #     mse_b_u = MSE(u_lb_pred, u_ub_pred) + MSE(u_x_lb_pred, u_x_ub_pred)
-        # else:
-        #     u_lb_pred = self.u_model(tf.concat([self.x_lb, self.t_lb], 1))
-        #     u_ub_pred = self.u_model(tf.concat([self.x_ub, self.t_ub], 1))
-        #     mse_b_u = MSE(u_lb_pred, self.u_lb) + MSE(u_ub_pred, self.u_ub)
-        #
-        # mse_0_u = MSE(u0_pred, self.u0, self.u_weights)
-        #
-        # if self.g is not None:
-        #     if self.dist:
-        #         mse_f_u = g_MSE(f_u_pred, constant(0.0), self.g(self.dist_col_weights))
-        #     else:
-        #         mse_f_u = g_MSE(f_u_pred, constant(0.0), self.g(self.col_weights))
-        #
-        # else:
-        #     mse_f_u = MSE(f_u_pred, constant(0.0))
-        #
-        # if self.assimilate:
-        #     s_pred = self.u_model(tf.concat([self.data_x, self.data_t], 1))
-        #     mse_s_u = MSE(s_pred, self.data_s)
-        #     return mse_0_u + mse_b_u + mse_f_u + mse_s_u, mse_0_u, mse_b_u, mse_f_u
-        # else:
-        #     return mse_0_u + mse_b_u + mse_f_u, mse_0_u, mse_b_u, mse_f_u
 
     def grad(self):
-        #self.update_loss()
         with tf.GradientTape() as tape:
             loss_value = self.update_loss()
-            print(loss_value)
-            print(self.variables)
             grads = tape.gradient(loss_value, self.variables)
-            print(grads)
-
         return loss_value, grads
 
     def fit(self, tf_iter, newton_iter, batch_sz=None, newton_eager=True):
@@ -145,7 +103,6 @@ class CollocationSolverND:
             for g in grad:
                 grad_flat.append(tf.reshape(g, [-1]))
             grad_flat = tf.concat(grad_flat, 0)
-            # print(loss_value, grad_flat)
             return loss_value, grad_flat
 
         return loss_and_flat_grad
@@ -158,35 +115,6 @@ class CollocationSolverND:
                                 X_star[:, 1:2])
 
         return u_star.numpy(), f_u_star.numpy()
-
-
-class CollocationSolver2D(CollocationSolverND):
-
-    def compile(self, layer_sizes, f_model, x_f, y_f, t_f, x0, t0, u0, x_lb, y_lb, t_lb, x_ub, y_ub, t_ub,
-                isPeriodic=False, u_x_model=None, isAdaptive=False, col_weights=None, u_weights=None, g=None):
-        CollocationSolver1D.compile(layer_sizes, f_model, x_f, t_f, x0, t0, u0, x_lb, t_lb, x_ub, t_ub, isPeriodic,
-                                    u_x_model, isAdaptive, col_weights, u_weights, g)
-        self.y_lb = y_lb
-        self.y_ub = y_ub
-        self.y_f = y_f
-
-    def loss(self):
-        f_u_pred = self.f_model(self.u_model, self.x_f, self.y_f, self.t_f)
-        u0_pred = self.u_model(tf.concat([self.x0, self.y0, self.t0], 1))
-
-        u_lb_pred, u_x_lb_pred, u_y_lb_pred = self.u_x_model(self.u_model, self.x_lb, self.y_lb, self.t_lb)
-        u_ub_pred, u_x_ub_pred, u_y_ub_pred = self.u_x_model(self.u_model, self.x_ub, self.y_ub, self.t_ub)
-
-        mse_b_u = MSE(u_lb_pred, u_ub_pred) + MSE(u_x_lb_pred, u_x_ub_pred) + MSE(u_y_lb_pred, u_y_ub_pred)
-
-        mse_0_u = MSE(u0_pred, self.u0, self.u_weights)
-
-        if self.g is not None:
-            mse_f_u = g_MSE(f_u_pred, constant(0.0), self.g(self.col_weights))
-        else:
-            mse_f_u = MSE(f_u_pred, constant(0.0))
-
-        return mse_0_u + mse_b_u + mse_f_u, mse_0_u, mse_b_u, mse_f_u
 
 
 class DiscoveryModel():
