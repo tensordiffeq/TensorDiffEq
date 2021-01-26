@@ -10,9 +10,8 @@ from .fit import *
 class CollocationSolverND:
     def __init__(self, assimilate=False):
         self.assimilate = assimilate
-        self.periodicBC = False
 
-    def compile(self, layer_sizes, f_model, domain, bcs, isPeriodic=False, u_x_model=None, isAdaptive=False,
+    def compile(self, layer_sizes, f_model, domain, bcs, isAdaptive=False,
                 col_weights=None, u_weights=None, g=None, dist=False):
         self.layer_sizes = layer_sizes
         self.sizes_w, self.sizes_b = get_sizes(layer_sizes)
@@ -22,13 +21,6 @@ class CollocationSolverND:
         self.g = g
         self.domain = domain
         self.dist = dist
-        # self.u_x_model = get_tf_model(u_x_model)
-        if isPeriodic:
-            self.periodicBC = True
-            if not u_x_model:
-                raise Exception("Periodic BC is listed but no u_x model is defined!")
-            else:
-                self.u_x_model = get_tf_model(u_x_model)
         self.col_weights = col_weights
         self.u_weights = u_weights
         self.X_f_dims = tf.shape(self.domain.X_f)
@@ -66,15 +58,24 @@ class CollocationSolverND:
                 for i, dim in enumerate(bc.var):
                     for j, lst in enumerate(dim):
                         for k, tup in enumerate(lst):
+                            #print(bc.upper[i])
                             upper = bc.u_x_model(self.u_model, bc.upper[i])[j][k]
                             lower = bc.u_x_model(self.u_model, bc.lower[i])[j][k]
                             msq = MSE(upper, lower)
                             loss_tmp = tf.math.add(loss_tmp, msq)
-            else:
+            elif self.isAdaptive and bc.isInit:
+                loss_tmp = tf.math.add(loss_tmp, MSE(self.u_model(bc.input), bc.val, self.u_weights))
+
+            elif self.isAdaptive and not bc.isInit:
                 loss_tmp = tf.math.add(loss_tmp, MSE(self.u_model(bc.input), bc.val))
 
         f_u_pred = self.f_model(self.u_model, *self.X_f_in)
-        mse_f_u = MSE(f_u_pred, constant(0.0))
+
+        if self.isAdaptive:
+            mse_f_u = MSE(f_u_pred, constant(0.0), self.col_weights)
+        else:
+            mse_f_u = MSE(f_u_pred, constant(0.0))
+
         loss_tmp = tf.math.add(loss_tmp, mse_f_u)
         return loss_tmp
         # self.build_loss()

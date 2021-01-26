@@ -12,8 +12,8 @@ def get_linspace(dict_):
 class BC(DomainND):
     def __init__(self):
         self.isPeriodic = False
-        self.dicts_ = [item for item in self.domain.domaindict if item['identifier'] != self.var]
-        self.dict_ = next(item for item in self.domain.domaindict if item["identifier"] == self.var)
+        self.isInit = False
+
 
     def compile(self):
         self.input = self.create_input()
@@ -57,6 +57,8 @@ class dirichlectBC(BC):
         self.var = var
         self.target = target
         super().__init__()
+        self.dicts_ = [item for item in self.domain.domaindict if item['identifier'] != self.var]
+        self.dict_ = next(item for item in self.domain.domaindict if item["identifier"] == self.var)
         self.compile()
 
     def create_input(self):
@@ -78,6 +80,7 @@ def get_function_out(func, var, dict_):
 class IC(BC):
     def __init__(self, domain, fun, var):
         self.isPeriodic = False
+        self.isInit = True
         self.domain = domain
         self.fun = fun
         self.vars = var
@@ -99,6 +102,7 @@ class IC(BC):
         for i, var_ in enumerate(self.vars):
             arg_list = []
             for j, var in enumerate(var_):
+                print(var)
                 var_dict = self.get_dict(var)
                 arg_list.append(get_linspace(var_dict))
             inp = flatten_and_stack(multimesh(arg_list))
@@ -111,10 +115,12 @@ class IC(BC):
 
 class periodicBC(BC):
     def __init__(self, domain, var, deriv_model):
-        self.var = var
         self.domain = domain
+        self.var = var
+        super().__init__()
+
         self.deriv_model = [get_tf_model(model) for model in deriv_model]
-        #super().__init__()
+        #
         self.isPeriodic = True
         #self.dicts_ = [item for item in self.domain.domaindict]
         #self.dict_ = next(item for item in self.domain.domaindict if item["identifier"] == var)
@@ -124,11 +130,8 @@ class periodicBC(BC):
         #for var in self.dict_["range"]:
         self.upper_repeat = self.create_target_input_repeat(var, self.dict_["range"][1])
         self.lower_repeat = self.create_target_input_repeat(var, self.dict_["range"][0])
-        print(np.shape(self.upper_repeat))
-
 
     def compile(self):
-        self.str_out = []
         self.upper = []
         self.lower = []
         for var in self.var:
@@ -139,16 +142,19 @@ class periodicBC(BC):
             self.upper.append(np.insert(mesh, self.domain.vars.index(var), self.upper_repeat.flatten(), axis=1))
             self.lower.append(np.insert(mesh, self.domain.vars.index(var), self.lower_repeat.flatten(), axis=1))
         outer = []
-        tmp = []
         for i, lst in enumerate(self.upper):
+            tmp = []
+            print("in loop")
+            print(lst)
             for vec in lst.T:
+                print(vec)
                 tmp.append(convertTensor(np.reshape(vec, (-1,1))))
             outer.append(np.asarray(tmp))
         self.upper = outer
 
         outer = []
-        tmp = []
         for i, lst in enumerate(self.lower):
+            tmp = []
             for vec in lst.T:
                 tmp.append(np.reshape(vec, (-1,1)))
             outer.append(np.asarray(tmp))
