@@ -25,7 +25,8 @@ def func_ic(x):
 def deriv_model(u_model, x, t):
     u = u_model(tf.concat([x, t], 1))
     u_x = tf.gradients(u, x)[0]
-    return u, u_x
+    u_xx = tf.gradients(u_x, x)[0]
+    return u, u_x, u_xx
 
 
 init = IC(Domain, [func_ic], var=[['x']])
