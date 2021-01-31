@@ -4,7 +4,7 @@ import scipy.io
 import math
 import tensordiffeq as tdq
 import numpy as np
-from tensordiffeq.models_new import CollocationSolverND
+from tensordiffeq.models import CollocationSolverND
 from tensordiffeq.domains import DomainND
 from tensordiffeq.boundaries import *
 
@@ -26,7 +26,9 @@ def deriv_model(u_model, x, t):
     u = u_model(tf.concat([x, t], 1))
     u_x = tf.gradients(u, x)[0]
     u_xx = tf.gradients(u_x, x)[0]
-    return u, u_x, u_xx
+    u_xxx = tf.gradients(u_xx, x)[0]
+    u_xxxx = tf.gradients(u_xxx, x)[0]
+    return u, u_x, u_xxx, u_xxxx
 
 
 init = IC(Domain, [func_ic], var=[['x']])

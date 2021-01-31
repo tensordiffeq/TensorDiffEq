@@ -4,7 +4,7 @@ import scipy.io
 import math
 import tensordiffeq as tdq
 import numpy as np
-from tensordiffeq.models_new import CollocationSolverND
+from tensordiffeq.models import CollocationSolverND
 from tensordiffeq.domains import DomainND
 from tensordiffeq.boundaries import *
 
@@ -30,11 +30,6 @@ def deriv_model(u_model, x, t):
     return u, u_x
 
 x_periodic = periodicBC(Domain, ["x"], [deriv_model])
-
-# upper_x = dirichlectBC(Domain, val=0.0, var='x', target="upper")
-#
-# lower_x = dirichlectBC(Domain, val=0.0, var='x', target="lower")
-
 
 
 BCs = [init, x_periodic]

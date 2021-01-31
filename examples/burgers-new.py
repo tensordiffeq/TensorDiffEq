@@ -10,31 +10,21 @@ from tensordiffeq.boundaries import *
 
 Domain = DomainND(["x", "t"], time_var='t')
 
-Domain.add("x", [-1.0, 1.0], 512)
-Domain.add("t", [0.0, 1.0], 201)
+Domain.add("x", [-1.0, 1.0], 256)
+Domain.add("t", [0.0, 1.0], 100)
 
-N_f = 50000
+N_f = 20000
 Domain.generate_collocation_points(N_f)
 
 
 def func_ic(x):
-    return x ** 2 * np.cos(math.pi * x)
-
-
-# Conditions to be considered at the boundaries for the periodic BC
-def deriv_model(u_model, x, t):
-    u = u_model(tf.concat([x, t], 1))
-    u_x = tf.gradients(u, x)[0]
-    u_xx = tf.gradients(u_x, x)[0]
-    u_xxx = tf.gradients(u_xx, x)[0]
-    u_xxxx = tf.gradients(u_xxx, x)[0]
-    return u, u_x, u_xxx, u_xxxx
-
+    return -np.sin(x * math.pi)
 
 init = IC(Domain, [func_ic], var=[['x']])
-x_periodic = periodicBC(Domain, ['x'], [deriv_model])
+upper_x = dirichlectBC(Domain, val=0.0, var='x', target="upper")
+lower_x = dirichlectBC(Domain, val=0.0, var='x', target="lower")
 
-BCs = [init, x_periodic]
+BCs = [init, upper_x, lower_x]
 
 
 def f_model(u_model, x, t):
@@ -42,21 +32,24 @@ def f_model(u_model, x, t):
     u_x = tf.gradients(u, x)
     u_xx = tf.gradients(u_x, x)
     u_t = tf.gradients(u, t)
-    c1 = tdq.utils.constant(.0001)
-    c2 = tdq.utils.constant(5.0)
-    f_u = u_t - c1 * u_xx + c2 * u * u * u - c2 * u
+    f_u = u_t + u * u_x - (0.05 / tf.constant(math.pi)) * u_xx
     return f_u
+
 
 layer_sizes = [2, 128, 128, 128, 128, 1]
 
 model = CollocationSolverND()
 model.compile(layer_sizes, f_model, Domain, BCs)
-model.fit(tf_iter=10000, newton_iter=10000)
+model.fit(tf_iter=1000, newton_iter=1000)
 
-# Load high-fidelity data for error calculation
-data = scipy.io.loadmat('AC.mat')
 
-Exact = data['uu']
+#######################################################
+#################### PLOTTING #########################
+#######################################################
+
+data = scipy.io.loadmat('burgers_shock.mat')
+
+Exact = data['usol']
 Exact_u = np.real(Exact)
 
 # t = data['tt'].flatten()[:,None]
@@ -65,14 +58,13 @@ Exact_u = np.real(Exact)
 x = Domain.domaindict[0]['xlinspace']
 t = Domain.domaindict[1]["tlinspace"]
 
-# create mesh for plotting
+print(x, t)
 
 X, T = np.meshgrid(x, t)
 
 X_star = np.hstack((X.flatten()[:, None], T.flatten()[:, None]))
 u_star = Exact_u.T.flatten()[:, None]
 
-# forward pass through model
 u_pred, f_u_pred = model.predict(X_star)
 
 error_u = tdq.find_L2_error(u_pred, u_star)

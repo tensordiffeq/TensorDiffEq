@@ -4,7 +4,7 @@ import scipy.io
 import math
 import tensordiffeq as tdq
 import numpy as np
-from tensordiffeq.models_new import CollocationSolverND
+from tensordiffeq.models import CollocationSolverND
 from tensordiffeq.domains import DomainND
 from tensordiffeq.boundaries import *
 
@@ -18,26 +18,30 @@ N_f = 20000
 Domain.generate_collocation_points(N_f)
 
 
-def func_ic(x, y):
-    return -np.sin(x * math.pi) + np.sin(y * math.pi)
+def func_ic_xy(x, y):
+    return -np.sin(x * math.pi) + -np.sin(y * math.pi)
 
+init = IC(Domain, [func_ic_xy], var=[['x', 'y']])
 
-init = IC(Domain, [func_ic], var=[['x', "y"]])
 
 # Conditions to be considered at the boundaries for the periodic BC
 def deriv_model(u_model, x, y, t):
     u = u_model(tf.concat([x, y, t], 1))
     u_x = tf.gradients(u, x)[0]
     u_y = tf.gradients(u, y)[0]
-    return u, u_x, u_y
+    u_xx = tf.gradients(u_x, x)[0]
+    u_yx = tf.gradients(u_y, x)[0]
+    u_yy = tf.gradients(u_y, y)[0]
+    u_xy = tf.gradients(u_x, y)[0]
+    return u, u_x, u_y, u_xx, u_yy, u_xy, u_yx
+
 
 x_periodic = periodicBC(Domain, ["x", "y"], [deriv_model])
 
-# upper_x = dirichlectBC(Domain, val=0.0, var='x', target="upper")
+
+# upper_x = dirichlectBC(Domain, val=0.0, var='x',target="upper")
 #
 # lower_x = dirichlectBC(Domain, val=0.0, var='x', target="lower")
-
-
 
 BCs = [init, x_periodic]
 
@@ -49,6 +53,9 @@ def f_model(u_model, x, y, t):
     u_t = tf.gradients(u, t)
 
     f_u = u_t + u * u_x - (0.05 / tf.constant(math.pi)) * u_xx
+    u_t + u * u_x - (0.05 / tf.constant(math.pi)) * u_xx = 0
+
+    f_u = c*(u_xx + u_yy)
 
     return f_u
 
@@ -58,7 +65,6 @@ layer_sizes = [3, 128, 128, 128, 128, 1]
 model = CollocationSolverND()
 model.compile(layer_sizes, f_model, Domain, BCs)
 model.fit(tf_iter=1000, newton_iter=1000)
-
 
 data = scipy.io.loadmat('burgers_shock.mat')
 
@@ -71,8 +77,7 @@ Exact_u = np.real(Exact)
 x = Domain.domaindict[0]['xlinspace']
 t = Domain.domaindict[1]["tlinspace"]
 
-
-print(x,t)
+print(x, t)
 
 X, T = np.meshgrid(x, t)
 
