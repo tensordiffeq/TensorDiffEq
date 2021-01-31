@@ -13,16 +13,16 @@ os.environ["TF_GPU_THREAD_MODE"] = "gpu_private"
 
 def fit(obj, tf_iter, newton_iter, batch_sz=None, newton_eager=True):
     obj.u_model = neural_net(obj.layer_sizes)
-    #obj.build_loss()
+    # obj.build_loss()
     # Can adjust batch size for collocation points, here we set it to N_f
     if batch_sz is not None:
         obj.batch_sz = batch_sz
     else:
         obj.batch_sz = obj.X_f_len
-        #obj.batch_sz = len(obj.x_f)
+        # obj.batch_sz = len(obj.x_f)
 
     N_f = obj.X_f_len
-    #N_f = len(obj.x_f)
+    # N_f = len(obj.x_f)
     n_batches = int(N_f // obj.batch_sz)
     start_time = time.time()
     obj.tf_optimizer = tf.keras.optimizers.Adam(lr=0.005, beta_1=.99)
@@ -42,7 +42,7 @@ def fit(obj, tf_iter, newton_iter, batch_sz=None, newton_eager=True):
         if epoch % 100 == 0:
             elapsed = time.time() - start_time
             print('It: %d, Time: %.2f' % (epoch, elapsed))
-            #tf.print(f"mse_0: {mse_0}  mse_b  {mse_b}  mse_f: {mse_f}   total loss: {loss_value}")
+            # tf.print(f"mse_0: {mse_0}  mse_b  {mse_b}  mse_f: {mse_f}   total loss: {loss_value}")
             tf.print(f"total loss: {loss_value}")
             start_time = time.time()
     # tf.profiler.experimental.stop()
@@ -98,12 +98,21 @@ def train_op(obj, n_batches):
         return loss_value
 
 
+# TODO Distributed training re-integration
+
 def fit_dist(obj, tf_iter, newton_iter, batch_sz=None, newton_eager=True):
     BUFFER_SIZE = len(obj.x_f)
     EPOCHS = tf_iter
     # devices = ['/gpu:0', '/gpu:1','/gpu:2', '/gpu:3'],
-    obj.strategy = tf.distribute.MirroredStrategy(devices = ['/gpu:0', '/gpu:1','/gpu:2', '/gpu:3'])
-    print("number of devices: {}".format(obj.strategy.num_replicas_in_sync))
+    try:
+        obj.strategy = tf.distribute.MirroredStrategy()
+    except:
+        print("Looks like we cant find any GPUs available, or your GPUs arent responding to Tensorflow's API. If "
+              "you're receiving this in error, check that your CUDA, "
+              "CUDNN, and other GPU dependencies are installed correctly with correct versioning based on your "
+              "version of Tensorflow")
+
+    print("Number of GPU devices: {}".format(obj.strategy.num_replicas_in_sync))
 
     if batch_sz is not None:
         obj.batch_sz = batch_sz
@@ -160,15 +169,16 @@ def fit_dist(obj, tf_iter, newton_iter, batch_sz=None, newton_eager=True):
             obj.dist_col_weights = tf.gather(obj.col_weights, col_idx)
             print(obj.dist_col_weights)
             obj.variables.extend([obj.u_weights, obj.dist_col_weights])
-            loss_value, mse_0, mse_b, mse_f, grads = obj.grad()
+            loss_value, grads = obj.grad()
             obj.tf_optimizer.apply_gradients(zip(grads[:-2], obj.u_model.trainable_variables))
             print([grads[-2], grads[-1]])
             obj.tf_optimizer_weights.apply_gradients(
                 zip([-grads[-2], -grads[-1]], [obj.u_weights, obj.dist_col_weights]))
-            tf.scatter_nd_add(obj.col_weights, col_idx, obj.dist_col_weights)
+            # TODO collocation weight splitting across replicas
+            # tf.scatter_nd_add(obj.col_weights, col_idx, obj.dist_col_weights)
         else:
             obj.variables = obj.u_model.trainable_variables
-            loss_value, mse_0, mse_b, mse_f, grads = obj.grad()
+            loss_value, grads = obj.grad()
             obj.tf_optimizer.apply_gradients(zip(grads, obj.u_model.trainable_variables))
         return loss_value
 

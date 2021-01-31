@@ -176,5 +176,7 @@ class periodicBC(BC):
         u_ub_pred, u_x_ub_pred = self.u_x_model(self.u_model, self.x_ub, self.t_ub)
         return
 
+    # TODO Add Neumann BC
+
 
 

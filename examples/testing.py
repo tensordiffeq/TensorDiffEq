@@ -53,9 +53,6 @@ def f_model(u_model, x, y, t):
     u_t = tf.gradients(u, t)
 
     f_u = u_t + u * u_x - (0.05 / tf.constant(math.pi)) * u_xx
-    u_t + u * u_x - (0.05 / tf.constant(math.pi)) * u_xx = 0
-
-    f_u = c*(u_xx + u_yy)
 
     return f_u
 
