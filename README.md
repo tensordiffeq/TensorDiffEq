@@ -2,6 +2,8 @@
 
 [![Build Status](https://travis-ci.com/levimcclenny/TensorDiffEq.svg?token=v7YRnTJ5sKUDc2sKNqG5&branch=main)](https://travis-ci.com/levimcclenny/TensorDiffEq)
 
+![TensorDiffEq logo](tdq-banner.png)
+
 Collocation-based PINN solvers on top of Tensorflow for multi-worker distributed computing. 
 
 Use TensorDiffEq if you require:
