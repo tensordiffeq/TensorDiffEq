@@ -1,10 +1,12 @@
-# TensorDiffEq - Efficient and Scalable Multi-GPU PINN Solvers
-
-[![Build Status](https://travis-ci.com/levimcclenny/TensorDiffEq.svg?token=v7YRnTJ5sKUDc2sKNqG5&branch=main)](https://travis-ci.com/levimcclenny/TensorDiffEq)
 
 ![TensorDiffEq logo](tdq-banner.png)
 
-Collocation-based PINN solvers on top of Tensorflow for multi-worker distributed computing. 
+
+[![Build Status](https://travis-ci.com/levimcclenny/TensorDiffEq.svg?token=v7YRnTJ5sKUDc2sKNqG5&branch=main)](https://travis-ci.com/levimcclenny/TensorDiffEq)
+
+## Efficient and Scalable Physics-Informed Deep Learning
+
+#### Collocation-based PINN solvers and PDE discovery methods on top of [Tensorflow](https://github.com/tensorflow/tensorflow) for multi-worker distributed computing. 
 
 Use TensorDiffEq if you require:
 - A meshless PINN solver that can distribute over multiple workers (GPUs) for
