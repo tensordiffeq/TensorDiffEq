@@ -58,6 +58,7 @@ class dirichlectBC(BC):
         super().__init__()
         self.dicts_ = [item for item in self.domain.domaindict if item['identifier'] != self.var]
         self.dict_ = next(item for item in self.domain.domaindict if item["identifier"] == self.var)
+        self.target = self.dict_[var+target]
         self.compile()
 
     def create_input(self):
