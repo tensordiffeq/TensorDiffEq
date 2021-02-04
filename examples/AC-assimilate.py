@@ -3,6 +3,9 @@ import tensorflow as tf
 import scipy.io
 import tensordiffeq as tdq
 from tensordiffeq.models import CollocationSolver1D
+from tensorflow.domain import DomainND
+import math
+from tensordiffeq.boundaries import IC, dirichlectBC, periodicBC
 
 def f_model(u_model, x, t):
     u = u_model(tf.concat([x,t],1))
