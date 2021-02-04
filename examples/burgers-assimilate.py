@@ -85,13 +85,6 @@ model.compile_data(x_s, t_s, y_s)
 #train loops
 model.fit(tf_iter = 100, newton_iter =100)
 
-plot()
-
-model.fit(tf_iter = 100, newton_iter =100)
-
-plot()
-
-
 X, T = np.meshgrid(x,t)
 
 X_star = np.hstack((X.flatten()[:,None], T.flatten()[:,None]))
