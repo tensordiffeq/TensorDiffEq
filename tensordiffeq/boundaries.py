@@ -1,4 +1,4 @@
-from tensordiffeq.domains import *
+from tensordiffeq.domains import DomainND
 import numpy as np
 import tensorflow as tf
 from .utils import multimesh, flatten_and_stack, MSE, convertTensor, get_tf_model

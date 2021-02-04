@@ -68,13 +68,9 @@ data = scipy.io.loadmat('burgers_shock.mat')
 Exact = data['usol']
 Exact_u = np.real(Exact)
 
-# t = data['tt'].flatten()[:,None]
-# x = data['x'].flatten()[:,None]
 
 x = Domain.domaindict[0]['xlinspace']
 t = Domain.domaindict[1]["tlinspace"]
-
-print(x, t)
 
 X, T = np.meshgrid(x, t)
 

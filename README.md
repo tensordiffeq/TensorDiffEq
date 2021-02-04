@@ -2,7 +2,10 @@
 ![TensorDiffEq logo](tdq-banner.png)
 
 
-[![Build Status](https://travis-ci.com/levimcclenny/TensorDiffEq.svg?token=v7YRnTJ5sKUDc2sKNqG5&branch=main)](https://travis-ci.com/levimcclenny/TensorDiffEq)
+![Docker Release](https://github.com/tensordiffeq/TensorDiffEq/workflows/Docker%20Release/badge.svg)
+![Conda Build](https://github.com/tensordiffeq/TensorDiffEq/workflows/Conda%20Build/badge.svg)
+![Package Build](https://github.com/tensordiffeq/TensorDiffEq/workflows/Package%20Build/badge.svg)
+![Package Release](https://github.com/tensordiffeq/TensorDiffEq/workflows/Package%20Release/badge.svg)
 
 ## Efficient and Scalable Physics-Informed Deep Learning
 

@@ -57,8 +57,6 @@ Exact_u = np.real(Exact)
 x = Domain.domaindict[0]['xlinspace']
 t = Domain.domaindict[1]["tlinspace"]
 
-print(x, t)
-
 X, T = np.meshgrid(x, t)
 
 X_star = np.hstack((X.flatten()[:, None], T.flatten()[:, None]))
