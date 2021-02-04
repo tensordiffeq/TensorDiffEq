@@ -6,6 +6,9 @@
 ![Conda Build](https://github.com/tensordiffeq/TensorDiffEq/workflows/Conda%20Build/badge.svg)
 ![Package Build](https://github.com/tensordiffeq/TensorDiffEq/workflows/Package%20Build/badge.svg)
 ![Package Release](https://github.com/tensordiffeq/TensorDiffEq/workflows/Package%20Release/badge.svg)
+![pypi](https://img.shields.io/pypi/v/tensordiffeq)
+![downloads](https://img.shields.io/pypi/dd/tensordiffeq)
+![python versions](https://img.shields.io/pypi/pyversions/tensordiffeq)
 
 ## Efficient and Scalable Physics-Informed Deep Learning
 
