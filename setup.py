@@ -7,7 +7,7 @@ with open("requirements.txt", "r") as f:
     install_requires = [x.strip() for x in f.readlines()]
 
 setuptools.setup(
-    name="tensordiffeq", # Replace with your own username
+    name="tensordiffeq",
     version="0.1.0",
     author="Levi McClenny",
     author_email="levimcclenny@tamu.edu",
