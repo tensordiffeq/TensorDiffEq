@@ -21,8 +21,8 @@ def func_ic(x):
     return -np.sin(x * math.pi)
 
 init = IC(Domain, [func_ic], var=[['x']])
-upper_x = dirichlectBC(Domain, val=0.0, var='x', target="upper")
-lower_x = dirichlectBC(Domain, val=0.0, var='x', target="lower")
+upper_x = dirichletBC(Domain, val=0.0, var='x', target="upper")
+lower_x = dirichletBC(Domain, val=0.0, var='x', target="lower")
 
 BCs = [init, upper_x, lower_x]
 

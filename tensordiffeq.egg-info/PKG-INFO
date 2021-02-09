@@ -1,16 +1,26 @@
 Metadata-Version: 2.1
 Name: tensordiffeq
-Version: 0.0.1
+Version: 0.1.0
 Summary: Distributed PDE Solver in Tensorflow
-Home-page: https://github.com/levimcclenny/tensordiffeq
+Home-page: https://github.com/tensordiffeq/tensordiffeq
 Author: Levi McClenny
 Author-email: levimcclenny@tamu.edu
 License: UNKNOWN
-Description: # TensorDiffEq - Efficient and Scalable Multi-GPU PINN Solvers
+Description: 
+        ![TensorDiffEq logo](tdq-banner.png)
         
-        [![Build Status](https://travis-ci.com/levimcclenny/TensorDiffEq.svg?token=v7YRnTJ5sKUDc2sKNqG5&branch=main)](https://travis-ci.com/levimcclenny/TensorDiffEq)
         
-        Collocation-based PINN solvers on top of Tensorflow for multi-worker distributed computing. 
+        ![Docker Release](https://github.com/tensordiffeq/TensorDiffEq/workflows/Docker%20Release/badge.svg)
+        ![Conda Build](https://github.com/tensordiffeq/TensorDiffEq/workflows/Conda%20Build/badge.svg)
+        ![Package Build](https://github.com/tensordiffeq/TensorDiffEq/workflows/Package%20Build/badge.svg)
+        ![Package Release](https://github.com/tensordiffeq/TensorDiffEq/workflows/Package%20Release/badge.svg)
+        ![pypi](https://img.shields.io/pypi/v/tensordiffeq)
+        ![downloads](https://img.shields.io/pypi/dd/tensordiffeq)
+        ![python versions](https://img.shields.io/pypi/pyversions/tensordiffeq)
+        
+        ## Efficient and Scalable Physics-Informed Deep Learning
+        
+        #### Collocation-based PINN solvers and PDE discovery methods on top of [Tensorflow](https://github.com/tensorflow/tensorflow) for multi-worker distributed computing. 
         
         Use TensorDiffEq if you require:
         - A meshless PINN solver that can distribute over multiple workers (GPUs) for

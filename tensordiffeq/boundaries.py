@@ -49,7 +49,7 @@ class BC(DomainND):
         return repeated_value
 
 
-class dirichlectBC(BC):
+class dirichletBC(BC):
     def __init__(self, domain, val, var, target):
         self.domain = domain
         self.val = val

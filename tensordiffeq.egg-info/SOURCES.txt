@@ -1,4 +1,5 @@
 README.md
+setup.cfg
 setup.py
 tensordiffeq/__init__.py
 tensordiffeq/helpers.py
