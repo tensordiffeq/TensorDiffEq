@@ -8,7 +8,7 @@ with open("requirements.txt", "r") as f:
 
 setuptools.setup(
     name="tensordiffeq",
-    version="0.1.0",
+    version="0.1.1",
     author="Levi McClenny",
     author_email="levimcclenny@tamu.edu",
     description="Distributed PDE Solver in Tensorflow",
