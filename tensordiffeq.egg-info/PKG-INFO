@@ -6,6 +6,7 @@ Home-page: https://github.com/tensordiffeq/tensordiffeq
 Author: Levi McClenny
 Author-email: levimcclenny@tamu.edu
 License: UNKNOWN
+Download-URL: https://github.com/tensordiffeq/tensordiffeq/tarball/v0.1.0
 Description: 
         ![TensorDiffEq logo](tdq-banner.png)
         
@@ -51,7 +52,20 @@ Description:
         
 Platform: UNKNOWN
 Classifier: Programming Language :: Python :: 3
+Classifier: Programming Language :: Python :: 3.6
+Classifier: Programming Language :: Python :: 3.7
+Classifier: Programming Language :: Python :: 3.8
 Classifier: License :: OSI Approved :: MIT License
 Classifier: Operating System :: OS Independent
+Classifier: Environment :: GPU :: NVIDIA CUDA
+Classifier: Intended Audience :: Developers
+Classifier: Intended Audience :: Education
+Classifier: Intended Audience :: Science/Research
+Classifier: Topic :: Scientific/Engineering
+Classifier: Topic :: Scientific/Engineering :: Artificial Intelligence
+Classifier: Topic :: Scientific/Engineering :: Mathematics
+Classifier: Topic :: Scientific/Engineering :: Physics
+Classifier: Topic :: Software Development :: Libraries
+Classifier: Topic :: Software Development :: Libraries :: Python Modules
 Requires-Python: >=3.6
 Description-Content-Type: text/markdown

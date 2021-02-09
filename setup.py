@@ -15,6 +15,7 @@ setuptools.setup(
     long_description=long_description,
     long_description_content_type="text/markdown",
     url="https://github.com/tensordiffeq/tensordiffeq",
+    download_url="https://github.com/tensordiffeq/tensordiffeq/tarball/v0.1.0",
     install_requires=install_requires,
     classifiers=[
         "Programming Language :: Python :: 3",
@@ -27,6 +28,12 @@ setuptools.setup(
         "Intended Audience :: Developers",
         "Intended Audience :: Education",
         "Intended Audience :: Science/Research",
+        "Topic :: Scientific/Engineering",
+        "Topic :: Scientific/Engineering :: Artificial Intelligence",
+        "Topic :: Scientific/Engineering :: Mathematics",
+        "Topic :: Scientific/Engineering :: Physics",
+        "Topic :: Software Development :: Libraries",
+        "Topic :: Software Development :: Libraries :: Python Modules"
     ],
     python_requires='>=3.6',
 )
