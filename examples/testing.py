@@ -5,7 +5,7 @@ import math
 import tensordiffeq as tdq
 import numpy as np
 from tensordiffeq.models import CollocationSolverND
-from tensordiffeq.domains import DomainND
+# from tensordiffeq import DomainND
 from tensordiffeq.boundaries import *
 
 Domain = DomainND(["x", "y", "t"], time_var='t')
