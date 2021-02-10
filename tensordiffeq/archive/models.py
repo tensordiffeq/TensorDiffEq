@@ -1,10 +1,3 @@
-
-import tensorflow as tf
-import numpy as np
-import time
-from tensordiffeq.utils import *
-from tensordiffeq.networks import *
-from tensordiffeq.plotting import *
 from tensordiffeq.fit import *
 
 class CollocationSolver1D():

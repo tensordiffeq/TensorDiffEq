@@ -1,12 +1,8 @@
-import numpy as np
-import tensorflow as tf
 import scipy.io
 import math
 import tensordiffeq as tdq
-import numpy as np
 from tensordiffeq.models import CollocationSolverND
-from tensordiffeq.domains import DomainND
-from tensordiffeq.boundaries import *
+from tensordiffeq.boundaries import dirichletBC
 
 Domain = DomainND(["x", "t"], time_var='t')
 

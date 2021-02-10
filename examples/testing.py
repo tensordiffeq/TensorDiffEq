@@ -1,9 +1,6 @@
-import numpy as np
-import tensorflow as tf
 import scipy.io
 import math
 import tensordiffeq as tdq
-import numpy as np
 from tensordiffeq.models import CollocationSolverND
 # from tensordiffeq import DomainND
 from tensordiffeq.boundaries import *

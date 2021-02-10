@@ -1,9 +1,7 @@
 import numpy as np
-import os
 import tensorflow as tf
 import scipy.io
 import tensordiffeq as tdq
-import matplotlib.pyplot as plt
 from tensordiffeq.models import CollocationSolver1D
 
 def f_model(u_model, x, t):
