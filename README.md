@@ -20,6 +20,7 @@ Use TensorDiffEq if you require:
 - Intuitive user interface allowing for explicit definitions of variable domains, 
   boundary conditions, initial conditions, and strong-form PDEs 
 
+
 What makes TensorDiffEq different?
 - Completely open-source
 - [Self-Adaptive Solvers](https://arxiv.org/abs/2009.04544) for forward and inverse problems, leading to increased accuracy of the solution and stability in training, resulting in 
