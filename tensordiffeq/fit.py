@@ -82,7 +82,6 @@ def lbfgs_op(func, init_params, newton_iter):
         tolerance=1e-20,
     )
 
-
 @tf.function()
 def train_op(obj, n_batches):
     for _ in range(n_batches):
