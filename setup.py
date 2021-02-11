@@ -17,7 +17,8 @@ setuptools.setup(
     url="https://github.com/tensordiffeq/tensordiffeq",
     download_url="https://github.com/tensordiffeq/tensordiffeq/tarball/v0.1.3",
     install_requires=install_requires,
-    packages = setuptools.find_packages(),
+    packages=setuptools.find_packages(),
+    include_package_data=True,
     classifiers=[
         "Programming Language :: Python :: 3",
         "Programming Language :: Python :: 3.6",
