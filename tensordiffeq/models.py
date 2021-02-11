@@ -25,9 +25,7 @@ class CollocationSolverND:
         self.u_weights = u_weights
         self.X_f_dims = tf.shape(self.domain.X_f)
         self.X_f_len = tf.slice(self.X_f_dims, [0], [1]).numpy()
-        tmp = []
-        for i, vec in enumerate(self.domain.X_f.T):
-            tmp.append(np.reshape(vec, (-1,1)))
+        tmp = [np.reshape(vec, (-1,1)) for i, vec in enumerate(self.domain.X_f.T)]
         self.X_f_in = np.asarray(tmp)
 
 
@@ -36,11 +34,14 @@ class CollocationSolverND:
             self.isAdaptive = True
             if self.col_weights is None and self.u_weights is None:
                 raise Exception("Adaptive weights selected but no inputs were specified!")
-        if not isAdaptive:
-            if self.col_weights is not None and self.u_weights is not None:
-                raise Exception(
-                    "Adaptive weights are turned off but weight vectors were provided. Set the weight vectors to "
-                    "\"none\" to continue")
+        if (
+            not isAdaptive
+            and self.col_weights is not None
+            and self.u_weights is not None
+        ):
+            raise Exception(
+                "Adaptive weights are turned off but weight vectors were provided. Set the weight vectors to "
+                "\"none\" to continue")
 
     def compile_data(self, x, t, y):
         if not self.assimilate:
@@ -158,9 +159,9 @@ class DiscoveryModel():
 
     @tf.function
     def train_op(self):
+        self.variables = self.u_model.trainable_variables
         if self.col_weights is not None:
             len_ = len(self.vars)
-            self.variables = self.u_model.trainable_variables
             self.variables.extend([self.col_weights])
             self.variables.extend(self.vars)
             loss_value, grads = self.grad()
@@ -168,7 +169,6 @@ class DiscoveryModel():
             self.tf_optimizer_weights.apply_gradients(zip([-grads[-(len_ + 1)]], [self.col_weights]))
             self.tf_optimizer_vars.apply_gradients(zip(grads[-len_:], self.vars))
         else:
-            self.variables = self.u_model.trainable_variables
             loss_value, mse_0, mse_b, mse_f, grads = self.grad()
             self.tf_optimizer.apply_gradients(zip(grads, self.u_model.trainable_variables))
 

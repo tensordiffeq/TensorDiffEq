@@ -10,9 +10,11 @@ class DomainND:
         self.time_var = time_var
 
     def generate_collocation_points(self, N_f):
-        range_list = []
-        for dict_ in self.domaindict:
-            range_list.append([val for key, val in dict_.items() if "range" in key][0])
+        range_list = [
+            [val for key, val in dict_.items() if "range" in key][0]
+            for dict_ in self.domaindict
+        ]
+
         limits = np.array(range_list)  # x,t domain
         X_f = LatinHypercubeSample(N_f, limits)
         self.X_f = X_f

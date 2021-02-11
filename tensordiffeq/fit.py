@@ -75,24 +75,25 @@ def lbfgs_train(obj, newton_iter):
 
 @tf.function
 def lbfgs_op(func, init_params, newton_iter):
-    results = tfp.optimizer.lbfgs_minimize(
-        value_and_gradients_function=func, initial_position=init_params, max_iterations=newton_iter, tolerance=1e-20)
-
-    return results
+    return tfp.optimizer.lbfgs_minimize(
+        value_and_gradients_function=func,
+        initial_position=init_params,
+        max_iterations=newton_iter,
+        tolerance=1e-20,
+    )
 
 
 @tf.function()
 def train_op(obj, n_batches):
-    for i in range(n_batches):
+    for _ in range(n_batches):
+        # unstack = tf.unstack(obj.u_model.trainable_variables, axis = 2)
+        obj.variables = obj.u_model.trainable_variables
         if obj.isAdaptive:
-            # unstack = tf.unstack(obj.u_model.trainable_variables, axis = 2)
-            obj.variables = obj.u_model.trainable_variables
             obj.variables.extend([obj.u_weights, obj.col_weights])
             loss_value, grads = obj.grad()
             obj.tf_optimizer.apply_gradients(zip(grads[:-2], obj.u_model.trainable_variables))
             obj.tf_optimizer_weights.apply_gradients(zip([-grads[-2], -grads[-1]], [obj.u_weights, obj.col_weights]))
         else:
-            obj.variables = obj.u_model.trainable_variables
             loss_value, grads = obj.grad()
             obj.tf_optimizer.apply_gradients(zip(grads, obj.u_model.trainable_variables))
         return loss_value

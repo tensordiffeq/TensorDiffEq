@@ -29,11 +29,8 @@ class BC(DomainND):
         return next(item for item in self.domain.domaindict if item["identifier"] == var)
 
     def get_not_dims(self, var):
-        dims = []
         self.dicts_ = [item for item in self.domain.domaindict if item['identifier'] != var]
-        for dict_ in self.dicts_:
-            dims.append(get_linspace(dict_))
-        return dims
+        return [get_linspace(dict_) for dict_ in self.dicts_]
 
     def create_target_input_repeat(self, var, target):
         fidelity_key = "fidelity"
@@ -43,10 +40,9 @@ class BC(DomainND):
             fids.append(res)
         reps = np.prod(fids)
         if target is str:
-            repeated_value = np.repeat(self.dict_[(var + target)], reps)
+            return np.repeat(self.dict_[(var + target)], reps)
         else:
-            repeated_value = np.repeat(target, reps)
-        return repeated_value
+            return np.repeat(target, reps)
 
 
 class dirichletBC(BC):
@@ -141,25 +137,18 @@ class periodicBC(BC):
             self.lower.append(np.insert(mesh, self.domain.vars.index(var), self.lower_repeat.flatten(), axis=1))
         outer = []
         for i, lst in enumerate(self.upper):
-            tmp = []
-            for vec in lst.T:
-                tmp.append(convertTensor(np.reshape(vec, (-1,1))))
+            tmp = [convertTensor(np.reshape(vec, (-1,1))) for vec in lst.T]
             outer.append(np.asarray(tmp))
         self.upper = outer
 
         outer = []
         for i, lst in enumerate(self.lower):
-            tmp = []
-            for vec in lst.T:
-                tmp.append(np.reshape(vec, (-1,1)))
+            tmp = [np.reshape(vec, (-1,1)) for vec in lst.T]
             outer.append(np.asarray(tmp))
         self.lower = outer
 
     def u_x_model(self, u_model, inputs):
-        out = []
-        for model in self.deriv_model:
-            out.append(model(u_model, *inputs))
-        return out
+        return [model(u_model, *inputs) for model in self.deriv_model]
 
 
     def create_edges(self):
