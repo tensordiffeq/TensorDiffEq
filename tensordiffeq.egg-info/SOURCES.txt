@@ -1,9 +1,13 @@
 README.md
-setup.cfg
 setup.py
+tensordiffeq/__init__.py
+tensordiffeq/boundaries.py
+tensordiffeq/domains.py
+tensordiffeq/fit.py
 tensordiffeq/helpers.py
 tensordiffeq/models.py
 tensordiffeq/networks.py
+tensordiffeq/optimizers.py
 tensordiffeq/plotting.py
 tensordiffeq/utils.py
 tensordiffeq.egg-info/PKG-INFO

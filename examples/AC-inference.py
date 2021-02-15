@@ -3,8 +3,9 @@ import tensorflow as tf
 import scipy.io
 import tensordiffeq as tdq
 from tensordiffeq.models import DiscoveryModel
+from tensordiffeq.utils import tensor
 
-def f_model(u_model, x, t, vars):
+def f_model(u_model, vars, x, t):
     u = u_model(tf.concat([x,t],1))
     u_x = tf.gradients(u, x)
     u_xx = tf.gradients(u_x, x)
@@ -39,10 +40,10 @@ u_star = Exact_u.T.flatten()[:,None]
 N = X_star.shape[0]
 T = t.shape[0]
 
-x = tdq.tensor(X_star[:,0:1])
-t = tdq.tensor(X_star[:,1:2])
+x = tensor(X_star[:,0:1])
+t = tensor(X_star[:,1:2])
 
-X_star = tdq.tensor(X_star)
+X_star = tensor(X_star)
 
 
 

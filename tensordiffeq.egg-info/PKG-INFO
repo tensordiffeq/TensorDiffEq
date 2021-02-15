@@ -1,17 +1,18 @@
 Metadata-Version: 2.1
 Name: tensordiffeq
-Version: 0.1.3
+Version: 0.1.5
 Summary: Distributed PDE Solver in Tensorflow
 Home-page: https://github.com/tensordiffeq/tensordiffeq
 Author: Levi McClenny
 Author-email: levimcclenny@tamu.edu
 License: UNKNOWN
-Download-URL: https://github.com/tensordiffeq/tensordiffeq/tarball/v0.1.3
+Download-URL: https://github.com/tensordiffeq/tensordiffeq/tarball/v0.1.5
 Description: 
         ![TensorDiffEq logo](tdq-banner.png)
         
         
         ![Package Build](https://github.com/tensordiffeq/TensorDiffEq/workflows/Package%20Build/badge.svg)
+        ![Package Release](https://github.com/tensordiffeq/TensorDiffEq/workflows/Package%20Release/badge.svg)
         ![pypi](https://img.shields.io/pypi/v/tensordiffeq)
         ![downloads](https://img.shields.io/pypi/dd/tensordiffeq)
         ![python versions](https://img.shields.io/pypi/pyversions/tensordiffeq)

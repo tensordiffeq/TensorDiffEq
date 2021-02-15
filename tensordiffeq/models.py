@@ -132,8 +132,6 @@ class DiscoveryModel():
         self.layer_sizes = layer_sizes
         self.f_model = f_model
         self.X = X
-        self.x_f = X[:, 0:1]
-        self.t_f = X[:, 1:2]
         self.u = u
         self.vars = vars
         self.u_model = neural_net(self.layer_sizes)
@@ -144,7 +142,7 @@ class DiscoveryModel():
 
     def loss(self):
         u_pred = self.u_model(self.X)
-        f_u_pred, self.vars = self.f_model(self.u_model, self.x_f, self.t_f, self.vars)
+        f_u_pred, self.vars = self.f_model(self.u_model, self.vars, *self.X)
 
         if self.col_weights is not None:
             return MSE(u_pred, self.u) + g_MSE(f_u_pred, constant(0.0), self.col_weights ** 2)
@@ -169,12 +167,15 @@ class DiscoveryModel():
             self.tf_optimizer_weights.apply_gradients(zip([-grads[-(len_ + 1)]], [self.col_weights]))
             self.tf_optimizer_vars.apply_gradients(zip(grads[-len_:], self.vars))
         else:
-            loss_value, mse_0, mse_b, mse_f, grads = self.grad()
+            loss_value, grads = self.grad()
             self.tf_optimizer.apply_gradients(zip(grads, self.u_model.trainable_variables))
 
         return loss_value
 
-    def train_loop(self, tf_iter):
+    def fit(self, tf_iter):
+        self.train_loop(tf_iter)
+
+    def train_loop(self, tf_iter):  # sourcery skip: move-assign
         start_time = time.time()
         for i in range(tf_iter):
             loss_value = self.train_op()
