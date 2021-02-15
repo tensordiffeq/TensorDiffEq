@@ -21,10 +21,10 @@ def func_ic(x):
 def deriv_model(u_model, x, t):
     u = u_model(tf.concat([x, t], 1))
     u_x = tf.gradients(u, x)[0]
-    u_xx = tf.gradients(u_x, x)[0]
-    u_xxx = tf.gradients(u_xx, x)[0]
-    u_xxxx = tf.gradients(u_xxx, x)[0]
-    return u, u_x, u_xxx, u_xxxx
+    # u_xx = tf.gradients(u_x, x)[0]
+    # u_xxx = tf.gradients(u_xx, x)[0]
+    # u_xxxx = tf.gradients(u_xxx, x)[0]
+    return u, u_x
 
 
 init = IC(Domain, [func_ic], var=[['x']])
@@ -74,11 +74,11 @@ u_star = Exact_u.T.flatten()[:, None]
 # forward pass through model
 u_pred, f_u_pred = model.predict(X_star)
 
-error_u = tdq.find_L2_error(u_pred, u_star)
+error_u = tdq.helpers.find_L2_error(u_pred, u_star)
 print('Error u: %e' % (error_u))
 
-U_pred = tdq.get_griddata(X_star, u_pred.flatten(), (X, T))
-FU_pred = tdq.get_griddata(X_star, f_u_pred.flatten(), (X, T))
+U_pred = tdq.plotting.get_griddata(X_star, u_pred.flatten(), (X, T))
+FU_pred = tdq.plotting.get_griddata(X_star, f_u_pred.flatten(), (X, T))
 
 lb = np.array([-1.0, 0.0])
 ub = np.array([1.0, 1])
