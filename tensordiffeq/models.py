@@ -64,6 +64,7 @@ class CollocationSolverND:
                             lower = bc.u_x_model(self.u_model, bc.lower[i])[j][k]
                             msq = MSE(upper, lower)
                             loss_tmp = tf.math.add(loss_tmp, msq)
+                continue
             # initial BCs, including adaptive model
             if bc.isInit:
                 if self.isAdaptive:
@@ -130,25 +131,33 @@ class CollocationSolverND:
 class DiscoveryModel():
     def compile(self, layer_sizes, f_model, X, u, vars, col_weights=None):
         self.layer_sizes = layer_sizes
-        self.f_model = f_model
+        self.f_model = get_tf_model(f_model)
         self.X = X
         self.u = u
         self.vars = vars
         self.u_model = neural_net(self.layer_sizes)
         self.tf_optimizer = tf.keras.optimizers.Adam(lr=0.005, beta_1=.99)
-        self.tf_optimizer_vars = tf.keras.optimizers.Adam(lr=0.0005, beta_1=.99)
+        self.tf_optimizer_vars = tf.keras.optimizers.Adam(lr=0.005, beta_1=.99)
         self.tf_optimizer_weights = tf.keras.optimizers.Adam(lr=0.005, beta_1=.99)
         self.col_weights = col_weights
+        #tmp = [np.reshape(vec, (-1,1)) for i, vec in enumerate(self.X)]
+        self.X_in = tuple(X)
+        #self.X_in = np.asarray(tmp).T
+       # print(np.shape(self.X_in))
 
+    @tf.function
     def loss(self):
-        u_pred = self.u_model(self.X)
-        f_u_pred, self.vars = self.f_model(self.u_model, self.vars, *self.X)
+        u_pred = self.u_model(tf.concat(self.X, 1))
+        print(self.vars)
+        f_u_pred = self.f_model(self.u_model, self.vars, *self.X_in)
+        print(self.vars)
 
         if self.col_weights is not None:
             return MSE(u_pred, self.u) + g_MSE(f_u_pred, constant(0.0), self.col_weights ** 2)
         else:
             return MSE(u_pred, self.u) + MSE(f_u_pred, constant(0.0))
 
+    @tf.function
     def grad(self):
         with tf.GradientTape() as tape:
             loss_value = self.loss()
@@ -158,8 +167,9 @@ class DiscoveryModel():
     @tf.function
     def train_op(self):
         self.variables = self.u_model.trainable_variables
+        len_ = len(self.vars)
         if self.col_weights is not None:
-            len_ = len(self.vars)
+
             self.variables.extend([self.col_weights])
             self.variables.extend(self.vars)
             loss_value, grads = self.grad()
@@ -167,14 +177,19 @@ class DiscoveryModel():
             self.tf_optimizer_weights.apply_gradients(zip([-grads[-(len_ + 1)]], [self.col_weights]))
             self.tf_optimizer_vars.apply_gradients(zip(grads[-len_:], self.vars))
         else:
+            self.variables.extend(self.vars)
             loss_value, grads = self.grad()
-            self.tf_optimizer.apply_gradients(zip(grads, self.u_model.trainable_variables))
+
+            self.tf_optimizer.apply_gradients(zip(grads[:-(len_ + 1)], self.u_model.trainable_variables))
+
+            self.tf_optimizer_vars.apply_gradients(zip(grads[-len_:], self.vars))
 
         return loss_value
 
     def fit(self, tf_iter):
         self.train_loop(tf_iter)
 
+    # @tf.function
     def train_loop(self, tf_iter):  # sourcery skip: move-assign
         start_time = time.time()
         for i in range(tf_iter):
@@ -182,7 +197,7 @@ class DiscoveryModel():
             if i % 100 == 0:
                 elapsed = time.time() - start_time
                 print('It: %d, Time: %.2f' % (i, elapsed))
-                tf.print(f"total loss: {loss_value}")
+                tf.print(f"loss_value: {loss_value}")
                 var = [var.numpy() for var in self.vars]
-                print("vars estimate(s):", var)
+                tf.print(f"vars estimate(s): {var}")
                 start_time = time.time()

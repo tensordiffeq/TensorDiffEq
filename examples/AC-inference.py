@@ -13,7 +13,7 @@ def f_model(u_model, vars, x, t):
     c1 = vars[0]
     c2 = vars[1]
     f_u = u_t - c1*u_xx + c2*u*u*u - c2*u
-    return f_u, [c1, c2]
+    return f_u
 
 
 
@@ -40,20 +40,20 @@ u_star = Exact_u.T.flatten()[:,None]
 N = X_star.shape[0]
 T = t.shape[0]
 
-x = tensor(X_star[:,0:1])
-t = tensor(X_star[:,1:2])
+x = X_star[:, 0:1]
+t = X_star[:, 1:2]
 
 X_star = tensor(X_star)
 
 
-
-print(np.shape(x),np.shape(t), np.shape(u_star))
+X = [x, t]
+print(np.shape(x), np.shape(t), np.shape(X_star))
 
 vars = [tf.Variable(0.0, dtype = tf.float32), tf.Variable(0.0, dtype = tf.float32)]
 
 col_weights = tf.Variable(tf.random.uniform([np.shape(x)[0], 1]))
 
-model.compile(layer_sizes, f_model, X_star, u_star, vars, col_weights = col_weights)
+model.compile(layer_sizes, f_model, X, u_star, vars)
 
 #train loop
 model.fit(tf_iter = 10000)
