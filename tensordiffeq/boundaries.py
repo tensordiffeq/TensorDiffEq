@@ -114,7 +114,6 @@ class periodicBC(BC):
         super().__init__()
 
         self.deriv_model = [get_tf_model(model) for model in deriv_model]
-        #
         self.isPeriodic = True
         #self.dicts_ = [item for item in self.domain.domaindict]
         #self.dict_ = next(item for item in self.domain.domaindict if item["identifier"] == var)
