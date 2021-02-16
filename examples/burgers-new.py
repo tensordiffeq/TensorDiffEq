@@ -11,7 +11,7 @@ Domain = DomainND(["x", "t"], time_var='t')
 Domain.add("x", [-1.0, 1.0], 256)
 Domain.add("t", [0.0, 1.0], 100)
 
-N_f = 20000
+N_f = 10000
 Domain.generate_collocation_points(N_f)
 
 
@@ -34,7 +34,7 @@ def f_model(u_model, x, t):
     return f_u
 
 
-layer_sizes = [2, 128, 128, 128, 128, 1]
+layer_sizes = [2, 20, 20, 20, 20, 20, 20, 20, 20, 1]
 
 model = CollocationSolverND()
 model.compile(layer_sizes, f_model, Domain, BCs)
