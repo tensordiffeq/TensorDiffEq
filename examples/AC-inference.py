@@ -13,15 +13,17 @@ from tensordiffeq.utils import tensor
 # Put params into a list
 params = [tf.Variable(0.0, dtype=tf.float32), tf.Variable(0.0, dtype=tf.float32)]
 
+# Define f_model, note the `vars` argument. Inputs must follow this order!
 def f_model(u_model, vars, x, t):
     u = u_model(tf.concat([x,t],1))
     u_x = tf.gradients(u, x)
     u_xx = tf.gradients(u_x, x)
     u_t = tf.gradients(u,t)
-    c1 = vars[0]
-    c2 = vars[1]
+    c1 = vars[0] # tunable param 1
+    c2 = vars[1] # tunable param 2
     f_u = u_t - c1*u_xx + c2*u*u*u - c2*u
     return f_u
+
 
 # Import data, same data as Raissi et al
 
