@@ -1,5 +1,5 @@
 import tensorflow as tf
-from smt.sampling_methods import LHS
+from tensordiffeq.sampling import LHS
 import time as time
 import numpy as np
 
