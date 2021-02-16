@@ -58,7 +58,10 @@ def fit(obj, tf_iter, newton_iter, batch_sz=None, newton_eager=True):
                     Struct(), maxIter=newton_iter, learningRate=0.8)
 
     else:
-        print("Executing graph-mode L-BFGS")
+        print("Executing graph-mode L-BFGS\n Building graph...")
+        print("Warning: Typically eager-mode L-BFGS is faster. If the computational graph takes a long time to build, "
+              "or the computation is slow, try eager-mode L-BFGS")
+
         lbfgs_train(obj, newton_iter)
 
     # tf.profiler.experimental.stop()
