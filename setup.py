@@ -1,4 +1,8 @@
 import setuptools
+import os
+
+if sys.platform == 'darwin':
+    os.environ['MACOSX_DEPLOYMENT_TARGET'] = '10.9'
 
 with open("README.md", "r") as fh:
     long_description = fh.read()
