@@ -10,7 +10,7 @@
 
 ## Efficient and Scalable Physics-Informed Deep Learning
 
-#### Collocation-based PINN solvers and PDE discovery methods on top of [Tensorflow](https://github.com/tensorflow/tensorflow) for multi-worker distributed computing. 
+#### Collocation-based PINN PDE solvers for prediction and discovery methods on top of [Tensorflow](https://github.com/tensorflow/tensorflow) 2.X for multi-worker distributed computing. 
 
 Use TensorDiffEq if you require:
 - A meshless PINN solver that can distribute over multiple workers (GPUs) for
