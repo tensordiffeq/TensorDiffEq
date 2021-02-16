@@ -5,6 +5,14 @@ import tensordiffeq as tdq
 from tensordiffeq.models import DiscoveryModel
 from tensordiffeq.utils import tensor
 
+#####################
+## Discovery Model ##
+#####################
+
+
+# Put params into a list
+params = [tf.Variable(0.0, dtype=tf.float32), tf.Variable(0.0, dtype=tf.float32)]
+
 def f_model(u_model, vars, x, t):
     u = u_model(tf.concat([x,t],1))
     u_x = tf.gradients(u, x)
@@ -15,11 +23,6 @@ def f_model(u_model, vars, x, t):
     f_u = u_t - c1*u_xx + c2*u*u*u - c2*u
     return f_u
 
-
-
-lb = np.array([-1.0])
-ub = np.array([1.0])
-
 # Import data, same data as Raissi et al
 
 data = scipy.io.loadmat('AC.mat')
@@ -29,33 +32,31 @@ x = data['x'].flatten()[:,None]
 Exact = data['uu']
 Exact_u = np.real(Exact)
 
-
+# define MLP depth and layer width
 layer_sizes = [2, 128, 128, 128, 128, 1]
-model = DiscoveryModel()
 
+# generate all combinations of x and t
 X, T = np.meshgrid(x,t)
 
 X_star = np.hstack((X.flatten()[:,None], T.flatten()[:,None]))
 u_star = Exact_u.T.flatten()[:,None]
-N = X_star.shape[0]
-T = t.shape[0]
 
 x = X_star[:, 0:1]
 t = X_star[:, 1:2]
 
-X_star = tensor(X_star)
-
-
+# append to a list for input to model.fit
 X = [x, t]
-print(np.shape(x), np.shape(t), np.shape(X_star))
 
-vars = [tf.Variable(0.0, dtype = tf.float32), tf.Variable(0.0, dtype = tf.float32)]
-
+#define col_weights for SA discovery model
 col_weights = tf.Variable(tf.random.uniform([np.shape(x)[0], 1]))
 
-model.compile(layer_sizes, f_model, X, u_star, vars)
+# initialize, compile, train model
+model = DiscoveryModel()
+model.compile(layer_sizes, f_model, X, u_star, vars, col_weights=col_weights) # baseline approach can be done by simply removing the col_weights arg
+model.tf_optimizer_weights = tf.keras.optimizers.Adam(lr=0.005, beta_1=.95) # an example as to how one could modify an optimizer, in this case the col_weights optimizer
 
-#train loop
+# train loop
 model.fit(tf_iter = 10000)
 
+# doesnt work quite yet
 tdq.plotting.plot_weights(model, scale = 10.0)
