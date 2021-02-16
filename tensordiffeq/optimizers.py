@@ -62,7 +62,7 @@ def graph_lbfgs(model, loss):
             # update the parameters in the model
             assign_new_model_parameters(params_1d)
             # calculate the loss
-            loss_value = loss()[0]
+            loss_value = loss()
 
         # calculate gradients and convert to 1D tf.Tensor
         grads = tape.gradient(loss_value, model.trainable_variables)

@@ -52,7 +52,6 @@ class CollocationSolverND:
         self.data_t = t
         self.data_s = y
 
-    # @tf.function
     def update_loss(self):
         loss_tmp = 0.0
         # Periodic BC iteration for all components of deriv_model
@@ -87,7 +86,6 @@ class CollocationSolverND:
 
         loss_tmp = tf.math.add(loss_tmp, mse_f_u)
         return loss_tmp
-
 
     def grad(self):
         with tf.GradientTape() as tape:

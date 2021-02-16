@@ -66,7 +66,7 @@ def fit(obj, tf_iter, newton_iter, batch_sz=None, newton_eager=True):
 
 # @tf.function
 def lbfgs_train(obj, newton_iter):
-    func = graph_lbfgs(obj.u_model, obj.loss)
+    func = graph_lbfgs(obj.u_model, obj.update_loss)
 
     init_params = tf.dynamic_stitch(func.idx, obj.u_model.trainable_variables)
 
