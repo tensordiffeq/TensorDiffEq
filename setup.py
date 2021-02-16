@@ -1,5 +1,6 @@
 import setuptools
 import os
+import sys
 
 if sys.platform == 'darwin':
     os.environ['MACOSX_DEPLOYMENT_TARGET'] = '10.9'
