@@ -9,6 +9,7 @@ tensordiffeq/models.py
 tensordiffeq/networks.py
 tensordiffeq/optimizers.py
 tensordiffeq/plotting.py
+tensordiffeq/sampling.py
 tensordiffeq/utils.py
 tensordiffeq.egg-info/PKG-INFO
 tensordiffeq.egg-info/SOURCES.txt

@@ -129,12 +129,13 @@ class CollocationSolverND:
 # WIP
 # TODO DiscoveryModel
 class DiscoveryModel():
-    def compile(self, layer_sizes, f_model, X, u, vars, col_weights=None):
+    def compile(self, layer_sizes, f_model, X, u, var, col_weights=None):
         self.layer_sizes = layer_sizes
         self.f_model = get_tf_model(f_model)
         self.X = X
         self.u = u
-        self.vars = vars
+        self.vars = var
+        self.len_ = len(var)
         self.u_model = neural_net(self.layer_sizes)
         self.tf_optimizer = tf.keras.optimizers.Adam(lr=0.005, beta_1=.99)
         self.tf_optimizer_vars = tf.keras.optimizers.Adam(lr=0.005, beta_1=.99)
@@ -167,7 +168,7 @@ class DiscoveryModel():
     @tf.function
     def train_op(self):
         self.variables = self.u_model.trainable_variables
-        len_ = len(self.vars)
+        len_ = self.len_
         if self.col_weights is not None:
 
             self.variables.extend([self.col_weights])
