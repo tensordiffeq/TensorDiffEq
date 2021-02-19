@@ -38,9 +38,9 @@ layer_sizes = [2, 20, 20, 20, 20, 20, 20, 20, 20, 1]
 
 model = CollocationSolverND()
 model.compile(layer_sizes, f_model, Domain, BCs)
-model.fit(newton_iter=301)
 
-model.fit(tf_iter=301)
+# to reproduce results from Raissi and the SA-PINNs paper, train for 10k newton and 10k adam
+model.fit(newton_iter=10000, tf_iter=10000)
 
 
 #######################################################
