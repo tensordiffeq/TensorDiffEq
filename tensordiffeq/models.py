@@ -97,7 +97,7 @@ class CollocationSolverND:
             grads = tape.gradient(loss_value, self.variables)
         return loss_value, grads
 
-    def fit(self, tf_iter, newton_iter, batch_sz=None, newton_eager=True):
+    def fit(self, tf_iter = 0, newton_iter = 0, batch_sz=None, newton_eager=True):
         if self.isAdaptive and (batch_sz is not None):
             raise Exception("Currently we dont support minibatching for adaptive PINNs")
         if self.dist:

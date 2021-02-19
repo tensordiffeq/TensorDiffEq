@@ -11,7 +11,7 @@ import sys
 os.environ["TF_GPU_THREAD_MODE"] = "gpu_private"
 
 
-def fit(obj, tf_iter, newton_iter, batch_sz=None, newton_eager=True):
+def fit(obj, tf_iter=0, newton_iter=0, batch_sz=None, newton_eager=True):
     # obj.u_model = neural_net(obj.layer_sizes)
     # obj.build_loss()
     # Can adjust batch size for collocation points, here we set it to N_f
@@ -34,7 +34,6 @@ def fit(obj, tf_iter, newton_iter, batch_sz=None, newton_eager=True):
     print("starting Adam training")
     # tf.profiler.experimental.start('../cache/tblogdir1')
     train_op_fn = train_op_inner(obj)
-    print(obj.tf_optimizer)
     for epoch in range(tf_iter):
         loss_value = train_op_fn(n_batches, obj)
 
@@ -46,22 +45,24 @@ def fit(obj, tf_iter, newton_iter, batch_sz=None, newton_eager=True):
             start_time = time.time()
     # tf.profiler.experimental.stop()
 
-    print("Starting L-BFGS training")
+
     # tf.profiler.experimental.start('../cache/tblogdir1')
+    if newton_iter > 0:
+        print("Starting L-BFGS training")
+        if newton_eager:
+            print("Executing eager-mode L-BFGS")
+            loss_and_flat_grad = obj.get_loss_and_flat_grad()
+            eager_lbfgs(loss_and_flat_grad,
+                        get_weights(obj.u_model),
+                        Struct(), maxIter=newton_iter, learningRate=0.8)
 
-    if newton_eager:
-        print("Executing eager-mode L-BFGS")
-        loss_and_flat_grad = obj.get_loss_and_flat_grad()
-        eager_lbfgs(loss_and_flat_grad,
-                    get_weights(obj.u_model),
-                    Struct(), maxIter=newton_iter, learningRate=0.8)
+        else:
+            print("Executing graph-mode L-BFGS\n Building graph...")
+            print("Warning: Depending on your CPU/GPU setup, eager-mode L-BFGS may prove faster. If the computational "
+                  "graph takes a long time to build, or the computation is slow, try eager-mode L-BFGS (enabled by "
+                  "default)")
 
-    else:
-        print("Executing graph-mode L-BFGS\n Building graph...")
-        print("Warning: Typically eager-mode L-BFGS is faster. If the computational graph takes a long time to build, "
-              "or the computation is slow, try eager-mode L-BFGS")
-
-        lbfgs_train(obj, newton_iter)
+            lbfgs_train(obj, newton_iter)
 
     # tf.profiler.experimental.stop()
 
