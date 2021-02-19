@@ -13,6 +13,8 @@ class CollocationSolverND:
 
     def compile(self, layer_sizes, f_model, domain, bcs, isAdaptive=False,
                 col_weights=None, u_weights=None, g=None, dist=False):
+        self.tf_optimizer = tf.keras.optimizers.Adam(lr=0.005, beta_1=.99)
+        self.tf_optimizer_weights = tf.keras.optimizers.Adam(lr=0.005, beta_1=.99)
         self.layer_sizes = layer_sizes
         self.sizes_w, self.sizes_b = get_sizes(layer_sizes)
         self.bcs = bcs
@@ -27,6 +29,7 @@ class CollocationSolverND:
         self.X_f_len = tf.slice(self.X_f_dims, [0], [1]).numpy()
         tmp = [np.reshape(vec, (-1,1)) for i, vec in enumerate(self.domain.X_f.T)]
         self.X_f_in = np.asarray(tmp)
+        self.u_model = neural_net(self.layer_sizes)
 
 
 
@@ -87,6 +90,7 @@ class CollocationSolverND:
         loss_tmp = tf.math.add(loss_tmp, mse_f_u)
         return loss_tmp
 
+    #@tf.function
     def grad(self):
         with tf.GradientTape() as tape:
             loss_value = self.update_loss()

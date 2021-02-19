@@ -12,7 +12,7 @@ os.environ["TF_GPU_THREAD_MODE"] = "gpu_private"
 
 
 def fit(obj, tf_iter, newton_iter, batch_sz=None, newton_eager=True):
-    obj.u_model = neural_net(obj.layer_sizes)
+    # obj.u_model = neural_net(obj.layer_sizes)
     # obj.build_loss()
     # Can adjust batch size for collocation points, here we set it to N_f
     if batch_sz is not None:
@@ -25,19 +25,18 @@ def fit(obj, tf_iter, newton_iter, batch_sz=None, newton_eager=True):
     # N_f = len(obj.x_f)
     n_batches = int(N_f // obj.batch_sz)
     start_time = time.time()
-    obj.tf_optimizer = tf.keras.optimizers.Adam(lr=0.005, beta_1=.99)
-    obj.tf_optimizer_weights = tf.keras.optimizers.Adam(lr=0.005, beta_1=.99)
+    # obj.tf_optimizer = tf.keras.optimizers.Adam(lr=0.005, beta_1=.99)
+    # obj.tf_optimizer_weights = tf.keras.optimizers.Adam(lr=0.005, beta_1=.99)
 
     # these cant be tf.functions on initialization since the distributed strategy requires its own
     # graph using grad and adaptgrad, so they cant be compiled as tf.functions until we know dist/non-dist
     obj.grad = tf.function(obj.grad)
     print("starting Adam training")
     # tf.profiler.experimental.start('../cache/tblogdir1')
-    print(n_batches)
-    print(tf_iter)
+    train_op_fn = train_op_inner(obj)
+    print(obj.tf_optimizer)
     for epoch in range(tf_iter):
-
-        loss_value = train_op(obj, n_batches)
+        loss_value = train_op_fn(n_batches, obj)
 
         if epoch % 100 == 0:
             elapsed = time.time() - start_time
@@ -85,23 +84,29 @@ def lbfgs_op(func, init_params, newton_iter):
         tolerance=1e-20,
     )
 
-@tf.function()
-def train_op(obj, n_batches):
-    for _ in range(n_batches):
-        # unstack = tf.unstack(obj.u_model.trainable_variables, axis = 2)
-        obj.variables = obj.u_model.trainable_variables
-        if obj.isAdaptive:
-            obj.variables.extend([obj.u_weights, obj.col_weights])
-            loss_value, grads = obj.grad()
-            obj.tf_optimizer.apply_gradients(zip(grads[:-2], obj.u_model.trainable_variables))
-            obj.tf_optimizer_weights.apply_gradients(zip([-grads[-2], -grads[-1]], [obj.u_weights, obj.col_weights]))
-        else:
-            loss_value, grads = obj.grad()
-            obj.tf_optimizer.apply_gradients(zip(grads, obj.u_model.trainable_variables))
-        return loss_value
+
+def train_op_inner(obj):
+    @tf.function
+    def apply_grads(n_batches, obj=obj):
+        for _ in range(n_batches):
+            # unstack = tf.unstack(obj.u_model.trainable_variables, axis = 2)
+            obj.variables = obj.u_model.trainable_variables
+            if obj.isAdaptive:
+                obj.variables.extend([obj.u_weights, obj.col_weights])
+                loss_value, grads = obj.grad()
+                obj.tf_optimizer.apply_gradients(zip(grads[:-2], obj.u_model.trainable_variables))
+                obj.tf_optimizer_weights.apply_gradients(
+                    zip([-grads[-2], -grads[-1]], [obj.u_weights, obj.col_weights]))
+            else:
+                loss_value, grads = obj.grad()
+                obj.tf_optimizer.apply_gradients(zip(grads, obj.u_model.trainable_variables))
+            return loss_value
+
+    return apply_grads
 
 
 # TODO Distributed training re-integration
+# TODO decouple u_model from being overwritten by calling model.fit
 
 def fit_dist(obj, tf_iter, newton_iter, batch_sz=None, newton_eager=True):
     BUFFER_SIZE = len(obj.x_f)

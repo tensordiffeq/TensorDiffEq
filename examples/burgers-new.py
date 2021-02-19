@@ -38,7 +38,9 @@ layer_sizes = [2, 20, 20, 20, 20, 20, 20, 20, 20, 1]
 
 model = CollocationSolverND()
 model.compile(layer_sizes, f_model, Domain, BCs)
-model.fit(tf_iter=1000, newton_iter=1000)
+model.fit(tf_iter=301, newton_iter=101)
+
+model.fit(tf_iter=301, newton_iter=101)
 
 
 #######################################################

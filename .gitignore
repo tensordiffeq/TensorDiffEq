@@ -3,3 +3,4 @@ tensordiffeq/__pycache__/*
 venv/*
 .idea/*
 dist/*
+examples/*.ipynb
