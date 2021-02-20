@@ -30,7 +30,7 @@ def f_model(u_model, x, t):
     u_x = tf.gradients(u, x)
     u_xx = tf.gradients(u_x, x)
     u_t = tf.gradients(u, t)
-    f_u = u_t + u * u_x - (0.05 / tf.constant(math.pi)) * u_xx
+    f_u = u_t + u * u_x - (0.01 / tf.constant(math.pi)) * u_xx
     return f_u
 
 

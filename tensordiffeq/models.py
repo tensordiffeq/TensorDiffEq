@@ -32,7 +32,6 @@ class CollocationSolverND:
         self.u_model = neural_net(self.layer_sizes)
 
 
-
         if isAdaptive:
             self.isAdaptive = True
             if self.col_weights is None and self.u_weights is None:
