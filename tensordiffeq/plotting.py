@@ -43,7 +43,7 @@ def newfig(width, nplots = 1):
     return fig, ax
 
 
-def plot_solution_domain1D(model, domain, ub, lb, Exact_u = None):
+def plot_solution_domain1D(model, domain, ub, lb, Exact_u=None, u_transpose=False):
 
     X, T = np.meshgrid(domain[0],domain[1])
 
@@ -52,7 +52,10 @@ def plot_solution_domain1D(model, domain, ub, lb, Exact_u = None):
         u_star = Exact_u.T.flatten()[:,None]
 
     u_pred, f_u_pred = model.predict(X_star)
-    U_pred = griddata(X_star, u_pred.flatten(), (X, T), method='cubic')
+    if u_transpose:
+        U_pred = griddata(X_star, u_pred.T.flatten(), (X, T), method='cubic')
+    else:
+        U_pred = griddata(X_star, u_pred.flatten(), (X, T), method='cubic')
 
     fig, ax = newfig(1.3, 1.0)
 
