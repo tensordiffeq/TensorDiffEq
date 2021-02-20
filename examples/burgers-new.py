@@ -40,7 +40,7 @@ model = CollocationSolverND()
 model.compile(layer_sizes, f_model, Domain, BCs)
 
 # to reproduce results from Raissi and the SA-PINNs paper, train for 10k newton and 10k adam
-model.fit(newton_iter=10000, tf_iter=10000)
+model.fit(tf_iter=10000, newton_iter=10000)
 
 
 #######################################################
