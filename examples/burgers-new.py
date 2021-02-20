@@ -1,7 +1,5 @@
 import math
-
 import scipy.io
-
 import tensordiffeq as tdq
 from tensordiffeq.boundaries import *
 from tensordiffeq.models import CollocationSolverND
@@ -60,6 +58,7 @@ t = Domain.domaindict[1]["tlinspace"]
 
 X, T = np.meshgrid(x, t)
 
+# print(np.shape((X,T))) #2, 100, 256
 X_star = np.hstack((X.flatten()[:, None], T.flatten()[:, None]))
 u_star = Exact_u.T.flatten()[:, None]
 
