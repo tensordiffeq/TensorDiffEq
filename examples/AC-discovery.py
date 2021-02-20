@@ -51,13 +51,13 @@ print(np.shape(x))
 # append to a list for input to model.fit
 X = [x, t]
 
-# define col_weights for SA discovery model
+# define col_weights for SA discovery model, can be removed
 col_weights = tf.Variable(tf.random.uniform([np.shape(x)[0], 1]))
 
 # initialize, compile, train model
 model = DiscoveryModel()
 model.compile(layer_sizes, f_model, X, u_star, params,
-              col_weights=col_weights)  # baseline approach can be done by simply removing the col_weights arg
+              col_weights=col_weights)  # baseline discovery approach can be done by simply removing the col_weights arg
 model.tf_optimizer_weights = tf.keras.optimizers.Adam(lr=0.005,
                                                       beta_1=.95)  # an example as to how one could modify an optimizer, in this case the col_weights optimizer
 
