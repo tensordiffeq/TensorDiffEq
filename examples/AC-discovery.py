@@ -58,8 +58,10 @@ col_weights = tf.Variable(tf.random.uniform([np.shape(x)[0], 1]))
 model = DiscoveryModel()
 model.compile(layer_sizes, f_model, X, u_star, params,
               col_weights=col_weights)  # baseline discovery approach can be done by simply removing the col_weights arg
+
+# an example as to how one could modify an optimizer, in this case the col_weights optimizer
 model.tf_optimizer_weights = tf.keras.optimizers.Adam(lr=0.005,
-                                                      beta_1=.95)  # an example as to how one could modify an optimizer, in this case the col_weights optimizer
+                                                      beta_1=.95)
 
 # train loop
 model.fit(tf_iter=10000)
