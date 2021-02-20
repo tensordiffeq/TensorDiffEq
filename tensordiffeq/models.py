@@ -27,7 +27,8 @@ class CollocationSolverND:
         self.u_weights = u_weights
         self.X_f_dims = tf.shape(self.domain.X_f)
         self.X_f_len = tf.slice(self.X_f_dims, [0], [1]).numpy()
-        tmp = [np.reshape(vec, (-1,1)) for i, vec in enumerate(self.domain.X_f.T)]
+        # must explicitly cast data into tf.float32 for stability
+        tmp = [tf.cast(np.reshape(vec, (-1,1)), tf.float32) for i, vec in enumerate(self.domain.X_f.T)]
         self.X_f_in = np.asarray(tmp)
         self.u_model = neural_net(self.layer_sizes)
 
@@ -120,12 +121,14 @@ class CollocationSolverND:
         return loss_and_flat_grad
 
     def predict(self, X_star):
-        X_star = convertTensor(X_star)
+        # predict using concatenated data
         u_star = self.u_model(X_star)
-
-        f_u_star = self.f_model(self.u_model, X_star[:, 0:1],
-                                X_star[:, 1:2])
-
+        # split data into tuples for ND support
+        # must explicitly cast data into tf.float32 for stability
+        tmp = [tf.cast(np.reshape(vec, (-1,1)), tf.float32) for i, vec in enumerate(X_star.T)]
+        X_star = np.asarray(tmp)
+        X_star = tuple(X_star)
+        f_u_star = self.f_model(self.u_model, *X_star)
         return u_star.numpy(), f_u_star.numpy()
 
 
