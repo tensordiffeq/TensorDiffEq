@@ -35,9 +35,6 @@ x = data['x'].flatten()[:, None]
 Exact = data['uu']
 Exact_u = np.real(Exact)
 
-# define MLP depth and layer width
-layer_sizes = [2, 128, 128, 128, 128, 1]
-
 # generate all combinations of x and t
 X, T = np.meshgrid(x, t)
 
@@ -47,12 +44,14 @@ u_star = Exact_u.T.flatten()[:, None]
 x = X_star[:, 0:1]
 t = X_star[:, 1:2]
 
-print(np.shape(x))
 # append to a list for input to model.fit
 X = [x, t]
 
 # define col_weights for SA discovery model, can be removed
 col_weights = tf.Variable(tf.random.uniform([np.shape(x)[0], 1]))
+
+# define MLP depth and layer width
+layer_sizes = [2, 128, 128, 128, 128, 1]
 
 # initialize, compile, train model
 model = DiscoveryModel()
