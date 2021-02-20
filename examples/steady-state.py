@@ -32,7 +32,6 @@ def f_model(u_model, x, y):
     forcing = - (a1 * pi) ** 2 * sin(a1 * pi * x) * sin(a2 * pi * y) - \
               (a2 * pi) ** 2 * sin(a1 * pi * x) * sin(a2 * pi * y) + \
               ksq * sin(a1 * pi * x) * sin(a2 * pi * y)
-    print(np.shape(u_xx + u_yy))
 
     f_u = u_xx + u_yy + ksq * u - forcing  # = 0
 
@@ -51,7 +50,7 @@ layer_sizes = [2, 50, 50, 50, 50, 1]
 model = CollocationSolverND()
 model.compile(layer_sizes, f_model, Domain, BCs)
 
-model.fit(tf_iter=100, newton_iter=100)
+model.fit(tf_iter=10000, newton_iter=10000)
 
 # get exact solution
 nx, ny = (1001, 1001)
