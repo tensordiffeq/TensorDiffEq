@@ -1,3 +1,6 @@
+# Raissi et al plotting scripts - https://github.com/maziarraissi/PINNs/blob/master/Utilities/plotting.py
+# All code in this script is credited to Raissi et al
+
 
 import matplotlib as mpl
 import numpy as np
