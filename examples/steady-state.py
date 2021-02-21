@@ -28,6 +28,8 @@ def f_model(u_model, x, y):
     ksq = constant(1.0)
     pi = constant(math.pi)
 
+    # we use this specific forcing term because we have an exact analytical solution for this case
+    # to compare the results of the PINN solution
     # note that we must use tensorflow math primitives such as sin, cos, etc!
     forcing = - (a1 * pi) ** 2 * sin(a1 * pi * x) * sin(a2 * pi * y) - \
               (a2 * pi) ** 2 * sin(a1 * pi * x) * sin(a2 * pi * y) + \
