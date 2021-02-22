@@ -110,54 +110,6 @@ def train_op_inner(obj):
 # TODO decouple u_model from being overwritten by calling model.fit
 
 def fit_dist(obj, tf_iter, newton_iter, batch_sz=None, newton_eager=True):
-    BUFFER_SIZE = len(obj.x_f)
-    EPOCHS = tf_iter
-    # devices = ['/gpu:0', '/gpu:1','/gpu:2', '/gpu:3'],
-    try:
-        obj.strategy = tf.distribute.MirroredStrategy()
-    except:
-        print("Looks like we cant find any GPUs available, or your GPUs arent responding to Tensorflow's API. If "
-              "you're receiving this in error, check that your CUDA, "
-              "CUDNN, and other GPU dependencies are installed correctly with correct versioning based on your "
-              "version of Tensorflow")
-
-    print("Number of GPU devices: {}".format(obj.strategy.num_replicas_in_sync))
-
-    if batch_sz is not None:
-        obj.batch_sz = batch_sz
-    else:
-        obj.batch_sz = len(obj.x_f)
-
-    weights_idx = tensor(list(range(len(obj.x_f))), dtype=tf.int32)
-    print(weights_idx)
-    # print(tf.gather(obj.col_weights, weights_idx))
-    N_f = len(obj.x_f)
-    n_batches = N_f // obj.batch_sz
-
-    BATCH_SIZE_PER_REPLICA = obj.batch_sz
-    GLOBAL_BATCH_SIZE = BATCH_SIZE_PER_REPLICA * obj.strategy.num_replicas_in_sync
-
-    options = tf.data.Options()
-    options.experimental_distribute.auto_shard_policy = tf.data.experimental.AutoShardPolicy.DATA
-
-    obj.train_dataset = tf.data.Dataset.from_tensors((weights_idx, obj.x_f, obj.t_f))  # .batch(GLOBAL_BATCH_SIZE)
-
-    obj.train_dataset = obj.train_dataset.with_options(options)
-
-    obj.train_dist_dataset = obj.strategy.experimental_distribute_dataset(obj.train_dataset)
-
-    start_time = time.time()
-
-    with obj.strategy.scope():
-        obj.u_model = neural_net(obj.layer_sizes)
-        obj.tf_optimizer = tf.keras.optimizers.Adam(lr=0.005, beta_1=.99)
-        obj.tf_optimizer_weights = tf.keras.optimizers.Adam(lr=0.005, beta_1=.99)
-        obj.dist_col_weights = tf.Variable(tf.zeros(batch_sz), validate_shape=True)
-
-        if obj.isAdaptive:
-            obj.col_weights = tf.Variable(tf.random.uniform([obj.batch_sz, 1]))
-            obj.u_weights = tf.Variable(obj.u_weights)
-
     def train_epoch(dataset, STEPS):
         total_loss = 0.0
         num_batches = 0.0
@@ -170,8 +122,7 @@ def fit_dist(obj, tf_iter, newton_iter, batch_sz=None, newton_eager=True):
         return train_loss
 
     def train_step(obj, inputs):
-        col_idx, obj.dist_x_f, obj.dist_t_f = inputs
-        print(obj.dist_x_f, obj.dist_t_f)
+        obj.dist_X_f = inputs
         # obj.dist_col_weights = col_weights
         if obj.isAdaptive:
             obj.variables = obj.u_model.trainable_variables
@@ -224,7 +175,7 @@ def fit_dist(obj, tf_iter, newton_iter, batch_sz=None, newton_eager=True):
                 start_time = time.time()
 
     print("starting Adam training")
-    STEPS = np.max((n_batches // obj.strategy.num_replicas_in_sync, 1))
+    STEPS = np.max((obj.n_batches // obj.strategy.num_replicas_in_sync, 1))
     # tf.profiler.experimental.start('../cache/tblogdir1')
     train_loop(obj, tf_iter, STEPS)
     # tf.profiler.experimental.stop()

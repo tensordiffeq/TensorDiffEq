@@ -101,7 +101,54 @@ class CollocationSolverND:
         if self.isAdaptive and (batch_sz is not None):
             raise Exception("Currently we dont support minibatching for adaptive PINNs")
         if self.dist:
+            BUFFER_SIZE = len(self.X_f_in[0])
+            EPOCHS = tf_iter
+            # devices = ['/gpu:0', '/gpu:1','/gpu:2', '/gpu:3'],
+            try:
+                self.strategy = tf.distribute.MirroredStrategy()
+            except:
+                print(
+                    "Looks like we cant find any GPUs available, or your GPUs arent responding to Tensorflow's API. If "
+                    "you're receiving this in error, check that your CUDA, "
+                    "CUDNN, and other GPU dependencies are installed correctly with correct versioning based on your "
+                    "version of Tensorflow")
+
+            print("Number of GPU devices: {}".format(self.strategy.num_replicas_in_sync))
+
+            self.batch_sz = batch_sz if batch_sz is not None else len(self.X_f_in[0])
+            # weights_idx = tensor(list(range(len(self.x_f))), dtype=tf.int32)
+            # print(weights_idx)
+            # print(tf.gather(self.col_weights, weights_idx))
+            N_f = len(self.X_f_in[0])
+            self.n_batches = N_f // self.batch_sz
+
+            BATCH_SIZE_PER_REPLICA = self.batch_sz
+            GLOBAL_BATCH_SIZE = BATCH_SIZE_PER_REPLICA * self.strategy.num_replicas_in_sync
+
+            options = tf.data.Options()
+            options.experimental_distribute.auto_shard_policy = tf.data.experimental.AutoShardPolicy.DATA
+
+            self.train_dataset = tf.data.Dataset.from_tensors(
+                self.X_f_in)  # .batch(GLOBAL_BATCH_SIZE)
+
+            self.train_dataset = self.train_dataset.with_options(options)
+
+            self.train_dist_dataset = self.strategy.experimental_distribute_dataset(self.train_dataset)
+
+            start_time = time.time()
+
+            with self.strategy.scope():
+                self.u_model = neural_net(self.layer_sizes)
+                self.tf_optimizer = tf.keras.optimizers.Adam(lr=0.005, beta_1=.99)
+                self.tf_optimizer_weights = tf.keras.optimizers.Adam(lr=0.005, beta_1=.99)
+               # self.dist_col_weights = tf.Variable(tf.zeros(batch_sz), validate_shape=True)
+
+                if self.isAdaptive:
+                   # self.col_weights = tf.Variable(tf.random.uniform([self.batch_sz, 1]))
+                    self.u_weights = tf.Variable(self.u_weights)
+
             fit_dist(self, tf_iter=tf_iter, newton_iter=newton_iter, batch_sz=batch_sz, newton_eager=newton_eager)
+
         else:
             fit(self, tf_iter=tf_iter, newton_iter=newton_iter, batch_sz=batch_sz, newton_eager=newton_eager)
 
