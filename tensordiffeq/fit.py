@@ -106,8 +106,6 @@ def train_op_inner(obj):
     return apply_grads
 
 
-# TODO Distributed training re-integration
-# TODO decouple u_model from being overwritten by calling model.fit
 
 def fit_dist(obj, tf_iter, newton_iter, batch_sz=None, newton_eager=True):
     def train_epoch(dataset, STEPS):

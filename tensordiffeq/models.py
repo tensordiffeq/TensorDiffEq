@@ -180,7 +180,7 @@ class CollocationSolverND:
 
 
 # WIP
-# TODO DiscoveryModel
+# TODO Distributed Discovery Model
 class DiscoveryModel():
     def compile(self, layer_sizes, f_model, X, u, var, col_weights=None):
         self.layer_sizes = layer_sizes
