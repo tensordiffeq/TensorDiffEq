@@ -74,7 +74,7 @@ def get_function_out(func, var, dict_):
 
 
 class IC(BC):
-    def __init__(self, domain, fun, var, n_values=False):
+    def __init__(self, domain, fun, var, n_values=None):
         self.isPeriodic = False
         self.isInit = True
         self.n_values = n_values
@@ -94,7 +94,7 @@ class IC(BC):
 
         mesh = np.concatenate((mesh, np.reshape(t_repeat, (-1, 1))), axis=1)
         if self.n_values is not None:
-            self.nums = np.random.randint(0, high = len(mesh), size = self.n_values)
+            self.nums = np.random.randint(0, high=len(mesh), size=self.n_values)
             mesh = mesh[self.nums]
         return mesh
 
@@ -114,19 +114,16 @@ class IC(BC):
         return MSE(self.preds, self.val)
 
 class periodicBC(BC):
-    def __init__(self, domain, var, deriv_model):
+    def __init__(self, domain, var, deriv_model, n_values=None):
+        self.n_values = n_values
         self.domain = domain
         self.var = var
         super().__init__()
-
         self.deriv_model = [get_tf_model(model) for model in deriv_model]
         self.isPeriodic = True
-        #self.dicts_ = [item for item in self.domain.domaindict]
-        #self.dict_ = next(item for item in self.domain.domaindict if item["identifier"] == var)
         self.compile()
 
     def get_input_upper_lower(self, var):
-        #for var in self.dict_["range"]:
         self.upper_repeat = self.create_target_input_repeat(var, self.dict_["range"][1])
         self.lower_repeat = self.create_target_input_repeat(var, self.dict_["range"][0])
 
@@ -140,37 +137,29 @@ class periodicBC(BC):
             mesh = flatten_and_stack(multimesh(self.get_not_dims(var)))
             self.upper.append(np.insert(mesh, self.domain.vars.index(var), self.upper_repeat.flatten(), axis=1))
             self.lower.append(np.insert(mesh, self.domain.vars.index(var), self.lower_repeat.flatten(), axis=1))
-        outer = []
-        for i, lst in enumerate(self.upper):
-            tmp = [convertTensor(np.reshape(vec, (-1,1))) for vec in lst.T]
-            outer.append(np.asarray(tmp))
-        self.upper = outer
 
-        outer = []
-        for i, lst in enumerate(self.lower):
-            tmp = [np.reshape(vec, (-1,1)) for vec in lst.T]
-            outer.append(np.asarray(tmp))
-        self.lower = outer
+        if self.n_values is not None:
+            self.nums = np.random.randint(0, high=len(self.upper[0]), size=self.n_values)
+        else:
+            self.nums = np.random.randint(0, high=len(self.upper[0]), size=len(self.upper[0]))
+            print(self.nums)
+
+        self.upper = self.unroll(self.upper)
+        self.lower = self.unroll(self.lower)
 
     def u_x_model(self, u_model, inputs):
         return [model(u_model, *inputs) for model in self.deriv_model]
 
+    def unroll(self, inp):
+        outer = []
+        for _, lst in enumerate(inp):
+            tmp = [np.reshape(vec, (-1, 1))[self.nums] for vec in lst.T]
+            outer.append(np.asarray(tmp))
+        return outer
 
-    def create_edges(self):
-        edges = []
-        for i, val in enumerate(self.domain.bounds[:-1]):
-            for value in val:
-                edges.append(tf.concat([np.repeat(value, self.domain.fidel[i]), self.doms[-1]], 0))
 
-    def loss(self, u_model):
-        loss = 0.0
-        for i, val in enumerate(self.val):
-            tf.assign_add()
-        u_lb_pred, u_x_lb_pred = self.u_x_model(self.u_model, self.x_lb, self.t_lb)
-        u_ub_pred, u_x_ub_pred = self.u_x_model(self.u_model, self.x_ub, self.t_ub)
-        return
 
-    # TODO Add Neumann BC
+# TODO Add Neumann BC
 
 
 
