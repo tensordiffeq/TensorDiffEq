@@ -74,9 +74,10 @@ def get_function_out(func, var, dict_):
 
 
 class IC(BC):
-    def __init__(self, domain, fun, var):
+    def __init__(self, domain, fun, var, n_values=False):
         self.isPeriodic = False
         self.isInit = True
+        self.n_values = n_values
         self.domain = domain
         self.fun = fun
         self.vars = var
@@ -90,7 +91,11 @@ class IC(BC):
         # vals = np.reshape(fun_vals, (-1, len(self.vars)))
         mesh = flatten_and_stack(multimesh(dims))
         t_repeat = np.repeat(0.0, len(mesh))
+
         mesh = np.concatenate((mesh, np.reshape(t_repeat, (-1, 1))), axis=1)
+        if self.n_values is not None:
+            self.nums = np.random.randint(0, high = len(mesh), size = self.n_values)
+            mesh = mesh[self.nums]
         return mesh
 
     def create_target(self):
@@ -102,7 +107,8 @@ class IC(BC):
                 arg_list.append(get_linspace(var_dict))
             inp = flatten_and_stack(multimesh(arg_list))
             fun_vals.append(self.fun[i](*inp.T))
-        self.val = convertTensor(np.reshape(fun_vals, (-1, 1)))
+
+        self.val = convertTensor(np.reshape(fun_vals, (-1, 1))[self.nums])
 
     def loss(self):
         return MSE(self.preds, self.val)
