@@ -14,10 +14,10 @@ class BC(DomainND):
         self.isPeriodic = False
         self.isInit = False
 
-
     def compile(self):
         self.input = self.create_input()
 
+    # TODO Cleanup
     def preds_init(self, model):
         self.preds = model(self.input)
 
@@ -39,7 +39,7 @@ class BC(DomainND):
             res = [val for key, val in dict_.items() if fidelity_key in key]
             fids.append(res)
         reps = np.prod(fids)
-        if target is str:
+        if type(target) is str:
             return np.repeat(self.dict_[(var + target)], reps)
         else:
             return np.repeat(target, reps)
@@ -64,8 +64,54 @@ class dirichletBC(BC):
         mesh = np.insert(mesh, self.domain.vars.index(self.var), repeated_value.flatten(), axis=1)
         return mesh
 
-    def loss(self):
-        return MSE(self.preds, self.val)
+# def matching_dicts(obj, vars):
+#     ret_dicts=[]
+#     for variable in vars:
+#         ret_dicts.extend(next(item for item in obj.domain.domaindict if item["identifier"] == variable))
+#     return ret_dicts
+
+
+class FunctionDirichletBC(BC):
+    def __init__(self, domain, fun, var, target, func_inputs, n_values=None):
+        self.domain = domain
+        self.fun = fun
+        self.var = var
+        self.target = target
+        self.func_inputs = func_inputs
+        self.n_values = n_values
+        self.dicts_ = [item for item in self.domain.domaindict if item['identifier'] != self.var]
+        self.dict_ = next(item for item in self.domain.domaindict if item["identifier"] == self.var)
+        print(self.dict_)
+        super().__init__()
+        self.targets = self.dict_[var+target]
+        self.compile()
+        self.create_target()
+
+    def create_input(self):
+        dims = self.get_not_dims(self.var)
+        #dims = [get_linspace(dim) for dim in self.vars]
+        # vals = np.reshape(fun_vals, (-1, len(self.vars)))
+        mesh = flatten_and_stack(multimesh(dims))
+        # dim_repeat = np.repeat(0.0, len(mesh))
+        dim_repeat = self.create_target_input_repeat(self.var, self.target)
+        mesh = np.insert(mesh, self.domain.vars.index(self.var), dim_repeat.flatten(), axis=1)
+        if self.n_values is not None:
+            self.nums = np.random.randint(0, high=len(mesh), size=self.n_values)
+            mesh = mesh[self.nums]
+        return mesh
+
+    def create_target(self):
+        fun_vals = []
+        for i, var_ in enumerate(self.func_inputs):
+            arg_list = []
+            for j, var in enumerate(var_):
+                var_dict = self.get_dict(var)
+                arg_list.append(get_linspace(var_dict))
+            inp = flatten_and_stack(multimesh(arg_list))
+            print(*inp.T)
+            fun_vals.append(self.fun[i](*inp.T))
+            print(fun_vals)
+        self.val = convertTensor(np.reshape(fun_vals, (-1, 1))[self.nums])
 
 
 def get_function_out(func, var, dict_):
