@@ -153,8 +153,10 @@ class IC(BC):
                 arg_list.append(get_linspace(var_dict))
             inp = flatten_and_stack(multimesh(arg_list))
             fun_vals.append(self.fun[i](*inp.T))
-
-        self.val = convertTensor(np.reshape(fun_vals, (-1, 1))[self.nums])
+        if self.n_values is not None:
+            self.val = convertTensor(np.reshape(fun_vals, (-1, 1))[self.nums])
+        else:
+            self.val = convertTensor(np.reshape(fun_vals, (-1, 1)))
 
     def loss(self):
         return MSE(self.preds, self.val)

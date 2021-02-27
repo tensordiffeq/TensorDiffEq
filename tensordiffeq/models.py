@@ -28,19 +28,18 @@ class CollocationSolverND:
         self.X_f_dims = tf.shape(self.domain.X_f)
         self.X_f_len = tf.slice(self.X_f_dims, [0], [1]).numpy()
         # must explicitly cast data into tf.float32 for stability
-        tmp = [tf.cast(np.reshape(vec, (-1,1)), tf.float32) for i, vec in enumerate(self.domain.X_f.T)]
+        tmp = [tf.cast(np.reshape(vec, (-1, 1)), tf.float32) for i, vec in enumerate(self.domain.X_f.T)]
         self.X_f_in = np.asarray(tmp)
         self.u_model = neural_net(self.layer_sizes)
-
 
         if isAdaptive:
             self.isAdaptive = True
             if self.col_weights is None and self.u_weights is None:
                 raise Exception("Adaptive weights selected but no inputs were specified!")
         if (
-            not isAdaptive
-            and self.col_weights is not None
-            and self.u_weights is not None
+                not isAdaptive
+                and self.col_weights is not None
+                and self.u_weights is not None
         ):
             raise Exception(
                 "Adaptive weights are turned off but weight vectors were provided. Set the weight vectors to "
@@ -83,21 +82,24 @@ class CollocationSolverND:
         f_u_pred = self.f_model(self.u_model, *self.X_f_in)
 
         if self.isAdaptive:
-            mse_f_u = MSE(f_u_pred, constant(0.0), self.col_weights)
+            if self.g is not None:
+                mse_f_u = g_MSE(f_u_pred, constant(0.0), self.g(self.col_weights))
+            else:
+                mse_f_u = MSE(f_u_pred, constant(0.0), self.col_weights)
         else:
             mse_f_u = MSE(f_u_pred, constant(0.0))
 
         loss_tmp = tf.math.add(loss_tmp, mse_f_u)
         return loss_tmp
 
-    #@tf.function
+    # @tf.function
     def grad(self):
         with tf.GradientTape() as tape:
             loss_value = self.update_loss()
             grads = tape.gradient(loss_value, self.variables)
         return loss_value, grads
 
-    def fit(self, tf_iter = 0, newton_iter = 0, batch_sz=None, newton_eager=True):
+    def fit(self, tf_iter=0, newton_iter=0, batch_sz=None, newton_eager=True):
         if self.isAdaptive and (batch_sz is not None):
             raise Exception("Currently we dont support minibatching for adaptive PINNs")
         if self.dist:
@@ -141,10 +143,10 @@ class CollocationSolverND:
                 self.u_model = neural_net(self.layer_sizes)
                 self.tf_optimizer = tf.keras.optimizers.Adam(lr=0.005, beta_1=.99)
                 self.tf_optimizer_weights = tf.keras.optimizers.Adam(lr=0.005, beta_1=.99)
-               # self.dist_col_weights = tf.Variable(tf.zeros(batch_sz), validate_shape=True)
+                # self.dist_col_weights = tf.Variable(tf.zeros(batch_sz), validate_shape=True)
 
                 if self.isAdaptive:
-                   # self.col_weights = tf.Variable(tf.random.uniform([self.batch_sz, 1]))
+                    # self.col_weights = tf.Variable(tf.random.uniform([self.batch_sz, 1]))
                     self.u_weights = tf.Variable(self.u_weights)
 
             fit_dist(self, tf_iter=tf_iter, newton_iter=newton_iter, batch_sz=batch_sz, newton_eager=newton_eager)
@@ -172,7 +174,7 @@ class CollocationSolverND:
         u_star = self.u_model(X_star)
         # split data into tuples for ND support
         # must explicitly cast data into tf.float32 for stability
-        tmp = [tf.cast(np.reshape(vec, (-1,1)), tf.float32) for i, vec in enumerate(X_star.T)]
+        tmp = [tf.cast(np.reshape(vec, (-1, 1)), tf.float32) for i, vec in enumerate(X_star.T)]
         X_star = np.asarray(tmp)
         X_star = tuple(X_star)
         f_u_star = self.f_model(self.u_model, *X_star)
@@ -194,10 +196,11 @@ class DiscoveryModel():
         self.tf_optimizer_vars = tf.keras.optimizers.Adam(lr=0.005, beta_1=.99)
         self.tf_optimizer_weights = tf.keras.optimizers.Adam(lr=0.005, beta_1=.99)
         self.col_weights = col_weights
-        #tmp = [np.reshape(vec, (-1,1)) for i, vec in enumerate(self.X)]
+        # tmp = [np.reshape(vec, (-1,1)) for i, vec in enumerate(self.X)]
         self.X_in = tuple(X)
-        #self.X_in = np.asarray(tmp).T
-       # print(np.shape(self.X_in))
+        # self.X_in = np.asarray(tmp).T
+
+    # print(np.shape(self.X_in))
 
     @tf.function
     def loss(self):
