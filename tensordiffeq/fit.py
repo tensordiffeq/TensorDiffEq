@@ -92,12 +92,22 @@ def train_op_inner(obj):
         for _ in range(n_batches):
             # unstack = tf.unstack(obj.u_model.trainable_variables, axis = 2)
             obj.variables = obj.u_model.trainable_variables
-            if obj.isAdaptive:
+            if obj.isAdaptive and obj.u_weights is not None and obj.col_weights is not None:
                 obj.variables.extend([obj.u_weights, obj.col_weights])
                 loss_value, grads = obj.grad()
                 obj.tf_optimizer.apply_gradients(zip(grads[:-2], obj.u_model.trainable_variables))
                 obj.tf_optimizer_weights.apply_gradients(
                     zip([-grads[-2], -grads[-1]], [obj.u_weights, obj.col_weights]))
+            elif obj.isAdaptive and obj.u_weights is None and obj.col_weights is not None:
+                obj.variables.extend([obj.col_weights])
+                loss_value, grads = obj.grad()
+                obj.tf_optimizer.apply_gradients(zip(grads[:-1], obj.u_model.trainable_variables))
+                obj.tf_optimizer_weights.apply_gradients(zip([-grads[-1]], [obj.col_weights]))
+            elif obj.isAdaptive and obj.u_weights is not None and obj.col_weights is None:
+                obj.variables.extend([obj.u_weights])
+                loss_value, grads = obj.grad()
+                obj.tf_optimizer.apply_gradients(zip(grads[:-1], obj.u_model.trainable_variables))
+                obj.tf_optimizer_weights.apply_gradients(zip([-grads[-1]], [obj.u_weights]))
             else:
                 loss_value, grads = obj.grad()
                 obj.tf_optimizer.apply_gradients(zip(grads, obj.u_model.trainable_variables))
