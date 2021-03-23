@@ -44,7 +44,26 @@ def newfig(width, nplots = 1):
 
 
 def plot_solution_domain1D(model, domain, ub, lb, Exact_u=None, u_transpose=False):
-
+    """
+    Plot a 1D solution Domain
+    Arguments
+    ---------
+    model : model
+        a `model` class which contains the PDE solution
+    domain : Domain
+        a `Domain` object containing the x,t pairs
+    ub: list
+        a list of floats containing the upper boundaries of the plot
+    lb : list
+        a list of floats containing the lower boundaries of the plot
+    Exact_u : list
+        a list of the exact values of the solution for comparison
+    u_transpose : Boolean
+        a `bool` describing whether or not to transpose the solution plot of the domain
+    Returns
+    -------
+    None
+    """
     X, T = np.meshgrid(domain[0],domain[1])
 
     X_star = np.hstack((X.flatten()[:,None], T.flatten()[:,None]))
