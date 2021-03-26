@@ -190,7 +190,6 @@ class periodicBC(BC):
             self.nums = np.random.randint(0, high=len(self.upper[0]), size=self.n_values)
         else:
             self.nums = np.random.randint(0, high=len(self.upper[0]), size=len(self.upper[0]))
-            print(self.nums)
 
         self.upper = self.unroll(self.upper)
         self.lower = self.unroll(self.lower)
