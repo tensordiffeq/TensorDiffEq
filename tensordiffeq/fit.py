@@ -7,7 +7,7 @@ from .optimizers import *
 from .output import print_screen
 import time
 import os
-from tqdm import tqdm, trange
+from tqdm.auto import tqdm, trange
 from random import random, randint
 import sys
 
