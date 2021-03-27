@@ -4,8 +4,11 @@ from .networks import *
 from .models import *
 from .utils import *
 from .optimizers import *
+from .output import print_screen
 import time
 import os
+from tqdm import tqdm, trange
+from random import random, randint
 import sys
 
 os.environ["TF_GPU_THREAD_MODE"] = "gpu_private"
@@ -31,18 +34,25 @@ def fit(obj, tf_iter=0, newton_iter=0, batch_sz=None, newton_eager=True):
     # these cant be tf.functions on initialization since the distributed strategy requires its own
     # graph using grad and adaptgrad, so they cant be compiled as tf.functions until we know dist/non-dist
     obj.grad = tf.function(obj.grad)
+    print_screen(obj, obj.domain)
     print("starting Adam training")
     # tf.profiler.experimental.start('../cache/tblogdir1')
     train_op_fn = train_op_inner(obj)
-    for epoch in range(tf_iter):
-        loss_value = train_op_fn(n_batches, obj)
+    with trange(tf_iter) as t:
+        for epoch in t:
+            loss_value = train_op_fn(n_batches, obj)
+            # Description will be displayed on the left
+            t.set_description('Adam epoch %i' % epoch)
+            # Postfix will be displayed on the right,
+            # formatted automatically based on argument's datatype
+            if epoch % 10 == 0:
+                elapsed = time.time() - start_time
+                t.set_postfix(loss=loss_value.numpy())
+                #
+                # print('It: %d, Time: %.2f, loss: %.6f' % (epoch, elapsed, loss_value.numpy()))
+                # tf.print(f"total loss: {loss_value}")
+                start_time = time.time()
 
-        if epoch % 100 == 0:
-            elapsed = time.time() - start_time
-            print('It: %d, Time: %.2f' % (epoch, elapsed))
-            # tf.print(f"mse_0: {mse_0}  mse_b  {mse_b}  mse_f: {mse_f}   total loss: {loss_value}")
-            tf.print(f"total loss: {loss_value}")
-            start_time = time.time()
     # tf.profiler.experimental.stop()
 
 
