@@ -4,3 +4,5 @@ scipy
 tensorflow
 tensorflow_probability
 pyDOE2
+pyfiglet
+tqdm
