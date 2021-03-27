@@ -34,7 +34,7 @@ def fit(obj, tf_iter=0, newton_iter=0, batch_sz=None, newton_eager=True):
     # these cant be tf.functions on initialization since the distributed strategy requires its own
     # graph using grad and adaptgrad, so they cant be compiled as tf.functions until we know dist/non-dist
     obj.grad = tf.function(obj.grad)
-    print_screen(obj, obj.domain)
+    print_screen(obj)
     print("starting Adam training")
     # tf.profiler.experimental.start('../cache/tblogdir1')
     train_op_fn = train_op_inner(obj)
