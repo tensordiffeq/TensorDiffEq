@@ -186,7 +186,6 @@ class CollocationSolverND:
     def load_model(self, path):
         self.u_model = tf.keras.models.load_model(path)
 
-
 # WIP
 # TODO Distributed Discovery Model
 class DiscoveryModel():
