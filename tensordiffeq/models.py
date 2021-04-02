@@ -180,6 +180,11 @@ class CollocationSolverND:
         f_u_star = self.f_model(self.u_model, *X_star)
         return u_star.numpy(), f_u_star.numpy()
 
+    def save(self, path):
+        self.u_model.save(path)
+
+    def load_model(self, path):
+        self.u_model = tf.keras.models.load_model(path)
 
 # WIP
 # TODO Distributed Discovery Model
