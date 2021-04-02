@@ -272,7 +272,7 @@ def eager_lbfgs(opfunc, x, state, maxIter=100, learningRate=1, do_verbose=True):
                 print('function value changing less than tolX' + str(tf.abs(f - f_old)))
                 break
 
-            t_.set_description('L-BFGS epoch %i' % epoch)
+            t_.set_description('L-BFGS epoch %i' % (epoch+1))
             if do_verbose:
                 if nIter % 10 == 0:
                     t_.set_postfix(loss=f.numpy())

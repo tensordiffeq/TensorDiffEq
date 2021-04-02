@@ -42,7 +42,7 @@ def fit(obj, tf_iter=0, newton_iter=0, batch_sz=None, newton_eager=True):
         for epoch in t:
             loss_value = train_op_fn(n_batches, obj)
             # Description will be displayed on the left
-            t.set_description('Adam epoch %i' % epoch)
+            t.set_description('Adam epoch %i' % (epoch+1))
             # Postfix will be displayed on the right,
             # formatted automatically based on argument's datatype
             if epoch % 10 == 0:
