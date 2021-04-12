@@ -1,10 +1,7 @@
-name: tdq-env
-dependencies:
-  - matplotlib
-  - numpy
-  - scipy
-  - tensorflow
-  - tensorflow_probability
-  - pyDOE2
-  - pyfiglet
-  - tqdm
+matplotlib
+numpy
+scipy
+tensorflow_probability
+pyDOE2
+pyfiglet
+tqdm
