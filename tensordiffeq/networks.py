@@ -4,7 +4,9 @@ from tensorflow.keras.layers import Dense, Input
 from tensorflow.keras import layers, activations
 
 
-# define the neural network model
+# define the baseline FC neural network model
+# information about how to define custom neural networks is available
+# in the docs - https://docs.tensordiffeq.io/hacks/networks/index.html
 def neural_net(layer_sizes):
     model = Sequential()
     model.add(layers.InputLayer(input_shape=(layer_sizes[0],)))
