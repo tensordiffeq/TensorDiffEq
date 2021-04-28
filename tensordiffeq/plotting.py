@@ -14,26 +14,9 @@ def figsize(scale, nplots = 1):
     golden_mean = (np.sqrt(5.0)-1.0)/2.0            # Aesthetic ratio (you could change this)
     fig_width = fig_width_pt*inches_per_pt*scale    # width in inches
     fig_height = nplots*fig_width*golden_mean              # height in inches
-    fig_size = [fig_width,fig_height]
+    fig_size = [fig_width, fig_height]
     return fig_size
 
-pgf_with_latex = {                      # setup matplotlib to use latex for output
-    "pgf.texsystem": "pdflatex",        # change this if using xetex or lautex
-    "text.usetex": True,                # use LaTeX to write all text
-    "font.serif": [],                   # blank entries should cause plots to inherit fonts from the document
-    "font.monospace": [],
-    "axes.labelsize": 10,               # LaTeX default is 10pt font.
-    "font.size": 10,
-    "legend.fontsize": 8,               # Make the legend/label fonts a little smaller
-    "xtick.labelsize": 8,
-    "ytick.labelsize": 8,
-    "figure.figsize": figsize(1.0),     # default fig size of 0.9 textwidth
-    "pgf.preamble": [
-        r"\usepackage[utf8x]{inputenc}",    # use utf8 fonts becasue your computer can handle it :)
-        r"\usepackage[T1]{fontenc}",        # plots will be generated using this preamble
-        ]
-    }
-mpl.rcParams.update(pgf_with_latex)
 
 import matplotlib.pyplot as plt
 
@@ -98,11 +81,11 @@ def plot_solution_domain1D(model, domain, ub, lb, Exact_u=None, u_transpose=Fals
     ax.plot(domain[1][2*len_]*np.ones((2,1)), line, 'k--', linewidth = 1)
     ax.plot(domain[1][3*len_]*np.ones((2,1)), line, 'k--', linewidth = 1)
 
-    ax.set_xlabel('$t$')
-    ax.set_ylabel('$x$')
+    ax.set_xlabel('t')
+    ax.set_ylabel('x')
     leg = ax.legend(frameon=False, loc = 'best')
     #    plt.setp(leg.get_texts(), color='w')
-    ax.set_title('$u(t,x)$', fontsize = 10)
+    ax.set_title('u(t,x)', fontsize = 10)
 
     ####### Row 1: h(t,x) slices ##################
     gs1 = gridspec.GridSpec(1, 3)
@@ -111,9 +94,9 @@ def plot_solution_domain1D(model, domain, ub, lb, Exact_u=None, u_transpose=Fals
     ax = plt.subplot(gs1[0, 0])
     ax.plot(domain[0],Exact_u[:,len_], 'b-', linewidth = 2, label = 'Exact')
     ax.plot(domain[0],U_pred[len_,:], 'r--', linewidth = 2, label = 'Prediction')
-    ax.set_xlabel('$x$')
-    ax.set_ylabel('$u(t,x)$')
-    ax.set_title('$t = %.2f$' % (domain[1][len_]), fontsize = 10)
+    ax.set_xlabel('x')
+    ax.set_ylabel('u(t,x)')
+    ax.set_title('t = %.2f' % (domain[1][len_]), fontsize = 10)
     ax.axis('square')
     ax.set_xlim([-1.1,1.1])
     ax.set_ylim([-1.1,1.1])
@@ -121,23 +104,23 @@ def plot_solution_domain1D(model, domain, ub, lb, Exact_u=None, u_transpose=Fals
     ax = plt.subplot(gs1[0, 1])
     ax.plot(domain[0],Exact_u[:,2*len_], 'b-', linewidth = 2, label = 'Exact')
     ax.plot(domain[0],U_pred[2*len_,:], 'r--', linewidth = 2, label = 'Prediction')
-    ax.set_xlabel('$x$')
-    ax.set_ylabel('$u(t,x)$')
+    ax.set_xlabel('x')
+    ax.set_ylabel('u(t,x)')
     ax.axis('square')
     ax.set_xlim([-1.1,1.1])
     ax.set_ylim([-1.1,1.1])
-    ax.set_title('$t = %.2f$' % (domain[1][2*len_]), fontsize = 10)
+    ax.set_title('t = %.2f' % (domain[1][2*len_]), fontsize = 10)
     ax.legend(loc='upper center', bbox_to_anchor=(0.5, -0.3), ncol=5, frameon=False)
 
     ax = plt.subplot(gs1[0, 2])
     ax.plot(domain[0],Exact_u[:,3*len_], 'b-', linewidth = 2, label = 'Exact')
     ax.plot(domain[0],U_pred[3*len_,:], 'r--', linewidth = 2, label = 'Prediction')
-    ax.set_xlabel('$x$')
-    ax.set_ylabel('$u(t,x)$')
+    ax.set_xlabel('x')
+    ax.set_ylabel('u(t,x)')
     ax.axis('square')
     ax.set_xlim([-1.1,1.1])
     ax.set_ylim([-1.1,1.1])
-    ax.set_title('$t = %.2f$' % (domain[1][3*len_]), fontsize = 10)
+    ax.set_title('t = %.2f' % (domain[1][3*len_]), fontsize = 10)
 
     plt.show()
 
@@ -158,10 +141,10 @@ def plot_residuals(FU_pred, extent):
 
     #ax.add_collection(ec)
     ax.autoscale_view()
-    ax.set_xlabel('$x$')
-    ax.set_ylabel('$t$')
+    ax.set_xlabel('x')
+    ax.set_ylabel('t')
     cbar = plt.colorbar(ec)
-    cbar.set_label('$\overline{f}_u$ prediction')
+    cbar.set_label('\overline{f}_u prediction')
     plt.show()
 
 def get_griddata(grid, data, dims):
