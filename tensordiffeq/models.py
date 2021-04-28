@@ -13,6 +13,21 @@ class CollocationSolverND:
 
     def compile(self, layer_sizes, f_model, domain, bcs, isAdaptive=False,
                 col_weights=None, u_weights=None, g=None, dist=False):
+        """
+        Args:
+            layer_sizes: A list of layer sizes, can be overwritten via resetting u_model to a keras model
+            f_model: PDE definition
+            domain: a Domain object containing the information on the domain of the system
+            bcs: a list of ICs/BCs for the problem
+            isAdaptive: Boolean value determining whether to implement self-adaptive solving
+            col_weights: a tf.Variable vector of collocation point weights for self-adaptive solving
+            u_weights: a tf.Variable vector of initial boundary weights for self-adaptive training
+            g: a function in terms of `lambda` for self-adapting solving. Defaults to lambda^2
+            dist: A boolean value determining whether the solving will be distributed across multiple GPUs
+
+        Returns:
+            None
+        """
         self.tf_optimizer = tf.keras.optimizers.Adam(lr=0.005, beta_1=.99)
         self.tf_optimizer_weights = tf.keras.optimizers.Adam(lr=0.005, beta_1=.99)
         self.layer_sizes = layer_sizes
@@ -127,13 +142,13 @@ class CollocationSolverND:
             BATCH_SIZE_PER_REPLICA = self.batch_sz
             GLOBAL_BATCH_SIZE = BATCH_SIZE_PER_REPLICA * self.strategy.num_replicas_in_sync
 
-            options = tf.data.Options()
-            options.experimental_distribute.auto_shard_policy = tf.data.experimental.AutoShardPolicy.DATA
+            # options = tf.data.Options()
+            # options.experimental_distribute.auto_shard_policy = tf.data.experimental.AutoShardPolicy.DATA
 
-            self.train_dataset = tf.data.Dataset.from_tensors(
-                self.X_f_in)  # .batch(GLOBAL_BATCH_SIZE)
+            self.train_dataset = tf.data.Dataset.from_tensor_slices(
+                self.X_f_in).batch(GLOBAL_BATCH_SIZE)
 
-            self.train_dataset = self.train_dataset.with_options(options)
+            # self.train_dataset = self.train_dataset.with_options(options)
 
             self.train_dist_dataset = self.strategy.experimental_distribute_dataset(self.train_dataset)
 
@@ -183,8 +198,8 @@ class CollocationSolverND:
     def save(self, path):
         self.u_model.save(path)
 
-    def load_model(self, path):
-        self.u_model = tf.keras.models.load_model(path)
+    def load_model(self, path, compile_model=False):
+        self.u_model = tf.keras.models.load_model(path, compile=compile_model)
 
 # WIP
 # TODO Distributed Discovery Model
