@@ -90,6 +90,13 @@ class CollocationSolverND:
                     loss_tmp = tf.math.add(loss_tmp, MSE(self.u_model(bc.input), bc.val))
             # Dirichlect BC, will need to add more cases for Neumann BC, etc as more
             # BC types are added
+            if bc.isNeumann:
+                for i, dim in enumerate(bc.var):
+                    for j, lst in enumerate(dim):
+                        for k, tup in enumerate(lst):
+                            target = tf.cast(bc.u_x_model(self.u_model, bc.input[i])[j][k], dtype=tf.float32)
+                            msq = MSE(bc.val, target)
+                            loss_tmp = tf.math.add(loss_tmp, msq)
             # This is true unless the BC loss can be evaluated using the MSE function explicitly
             else:
                 loss_tmp = tf.math.add(loss_tmp, MSE(self.u_model(bc.input), bc.val))

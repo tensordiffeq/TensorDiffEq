@@ -13,6 +13,7 @@ class BC(DomainND):
     def __init__(self):
         self.isPeriodic = False
         self.isInit = False
+        self.isNeumann = False
 
     def compile(self):
         self.input = self.create_input()
@@ -113,6 +114,62 @@ class FunctionDirichletBC(BC):
             print(fun_vals)
         self.val = convertTensor(np.reshape(fun_vals, (-1, 1))[self.nums])
 
+class FunctionNeumannBC(BC):
+    def __init__(self, domain, fun, var, target, deriv_model, func_inputs, n_values=None):
+        self.n_values = n_values
+        self.domain = domain
+        self.fun = fun
+        self.var = var
+        self.target = target
+        super().__init__()
+        self.deriv_model = [get_tf_model(model) for model in deriv_model]
+        self.isNeumann = True
+        self.func_inputs = func_inputs
+        self.compile()
+        self.create_target()
+
+    def get_input_upper_lower(self, var):
+        self.repeat = self.create_target_input_repeat(var, self.target)
+        #self.lower_repeat = self.create_target_input_repeat(var, self.dict_["range"][0])
+
+    def compile(self):
+        self.input = []
+        for var in self.var:
+            self.dicts_ = [item for item in self.domain.domaindict if item["identifier"] != var]
+            self.dict_ = next(item for item in self.domain.domaindict if item["identifier"] == var)
+            self.get_input_upper_lower(var)
+            mesh = flatten_and_stack(multimesh(self.get_not_dims(var)))
+            self.input.append(np.insert(mesh, self.domain.vars.index(var), self.repeat.flatten(), axis=1))
+            # self.lower.append(np.insert(mesh, self.domain.vars.index(var), self.lower_repeat.flatten(), axis=1))
+
+        if self.n_values is not None:
+            self.nums = np.random.randint(0, high=len(self.input[0]), size=self.n_values)
+        else:
+            self.nums = np.random.randint(0, high=len(self.input[0]), size=len(self.input[0]))
+
+        self.input = self.unroll(self.input)
+        # self.lower = self.unroll(self.lower)
+
+    def u_x_model(self, u_model, inputs):
+        return [model(u_model, *inputs) for model in self.deriv_model]
+
+    def unroll(self, inp):
+        outer = []
+        for _, lst in enumerate(inp):
+            tmp = [np.reshape(vec, (-1, 1))[self.nums] for vec in lst.T]
+            outer.append(np.asarray(tmp))
+        return outer
+
+    def create_target(self):
+        fun_vals = []
+        for i, var_ in enumerate(self.func_inputs):
+            arg_list = []
+            for j, var in enumerate(var_):
+                var_dict = self.get_dict(var)
+                arg_list.append(get_linspace(var_dict))
+            inp = flatten_and_stack(multimesh(arg_list))
+            fun_vals.append(self.fun[i](*inp.T))
+        self.val = convertTensor(np.reshape(fun_vals, (-1, 1))[self.nums])
 
 def get_function_out(func, var, dict_):
     linspace = get_linspace(dict_)
@@ -122,6 +179,7 @@ def get_function_out(func, var, dict_):
 class IC(BC):
     def __init__(self, domain, fun, var, n_values=None):
         self.isPeriodic = False
+        self.isNeumann = False
         self.isInit = True
         self.n_values = n_values
         self.domain = domain
@@ -203,10 +261,6 @@ class periodicBC(BC):
             tmp = [np.reshape(vec, (-1, 1))[self.nums] for vec in lst.T]
             outer.append(np.asarray(tmp))
         return outer
-
-
-
-# TODO Add Neumann BC
 
 
 
