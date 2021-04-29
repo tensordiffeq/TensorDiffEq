@@ -18,14 +18,6 @@ class BC(DomainND):
     def compile(self):
         self.input = self.create_input()
 
-    # TODO Cleanup
-    def preds_init(self, model):
-        self.preds = model(self.input)
-
-    @tf.function
-    def update_values(self, model):
-        self.preds = model(self.input)
-
     def get_dict(self, var):
         return next(item for item in self.domain.domaindict if item["identifier"] == var)
 
@@ -65,12 +57,6 @@ class dirichletBC(BC):
         mesh = np.insert(mesh, self.domain.vars.index(self.var), repeated_value.flatten(), axis=1)
         return mesh
 
-# def matching_dicts(obj, vars):
-#     ret_dicts=[]
-#     for variable in vars:
-#         ret_dicts.extend(next(item for item in obj.domain.domaindict if item["identifier"] == variable))
-#     return ret_dicts
-
 
 class FunctionDirichletBC(BC):
     def __init__(self, domain, fun, var, target, func_inputs, n_values=None):
@@ -109,9 +95,7 @@ class FunctionDirichletBC(BC):
                 var_dict = self.get_dict(var)
                 arg_list.append(get_linspace(var_dict))
             inp = flatten_and_stack(multimesh(arg_list))
-            print(*inp.T)
             fun_vals.append(self.fun[i](*inp.T))
-            print(fun_vals)
         self.val = convertTensor(np.reshape(fun_vals, (-1, 1))[self.nums])
 
 class FunctionNeumannBC(BC):
@@ -130,7 +114,6 @@ class FunctionNeumannBC(BC):
 
     def get_input_upper_lower(self, var):
         self.repeat = self.create_target_input_repeat(var, self.target)
-        #self.lower_repeat = self.create_target_input_repeat(var, self.dict_["range"][0])
 
     def compile(self):
         self.input = []
@@ -140,7 +123,6 @@ class FunctionNeumannBC(BC):
             self.get_input_upper_lower(var)
             mesh = flatten_and_stack(multimesh(self.get_not_dims(var)))
             self.input.append(np.insert(mesh, self.domain.vars.index(var), self.repeat.flatten(), axis=1))
-            # self.lower.append(np.insert(mesh, self.domain.vars.index(var), self.lower_repeat.flatten(), axis=1))
 
         if self.n_values is not None:
             self.nums = np.random.randint(0, high=len(self.input[0]), size=self.n_values)
@@ -178,13 +160,13 @@ def get_function_out(func, var, dict_):
 
 class IC(BC):
     def __init__(self, domain, fun, var, n_values=None):
-        self.isPeriodic = False
-        self.isNeumann = False
         self.isInit = True
         self.n_values = n_values
         self.domain = domain
         self.fun = fun
         self.vars = var
+        super().__init__()
+        self.isInit = True
         self.dicts_ = [item for item in self.domain.domaindict if item['identifier'] != self.domain.time_var]
         self.dict_ = next(item for item in self.domain.domaindict if item["identifier"] == self.domain.time_var)
         self.compile()
@@ -192,7 +174,6 @@ class IC(BC):
 
     def create_input(self):
         dims = self.get_not_dims(self.domain.time_var)
-        # vals = np.reshape(fun_vals, (-1, len(self.vars)))
         mesh = flatten_and_stack(multimesh(dims))
         t_repeat = np.repeat(0.0, len(mesh))
 
