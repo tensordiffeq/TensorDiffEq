@@ -30,12 +30,8 @@ def get_weights(model):
 
 
 def get_sizes(layer_sizes):
-    sizes_w = []
-    sizes_b = []
-    for i, width in enumerate(layer_sizes):
-        if i != 1:
-            sizes_w.append(int(width * layer_sizes[1]))
-            sizes_b.append(int(width if i != 0 else layer_sizes[1]))
+    sizes_w = [layer_sizes[i] * layer_sizes[i - 1] for i in range(len(layer_sizes)) if i != 0]
+    sizes_b = layer_sizes[1:]
     return sizes_w, sizes_b
 
 
