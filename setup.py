@@ -13,14 +13,14 @@ with open("requirements.txt", "r") as f:
 
 setuptools.setup(
     name="tensordiffeq",
-    version="0.1.8",
+    version="0.1.9",
     author="Levi McClenny",
     author_email="levimcclenny@tamu.edu",
     description="Distributed PDE Solver in Tensorflow",
     long_description=long_description,
     long_description_content_type="text/markdown",
     url="https://github.com/tensordiffeq/tensordiffeq",
-    download_url="https://github.com/tensordiffeq/tensordiffeq/tarball/v0.1.6.7",
+    download_url="https://github.com/tensordiffeq/tensordiffeq/tarball/v0.1.9",
     install_requires=install_requires,
     packages=setuptools.find_packages(),
     include_package_data=True,
