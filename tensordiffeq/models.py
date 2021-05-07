@@ -5,6 +5,8 @@ from .utils import *
 from .networks import *
 from .plotting import *
 from .fit import *
+from tqdm.auto import tqdm, trange
+from .output import print_screen
 
 
 class CollocationSolverND:
@@ -232,10 +234,7 @@ class DiscoveryModel():
     @tf.function
     def loss(self):
         u_pred = self.u_model(tf.concat(self.X, 1))
-        print(self.vars)
         f_u_pred = self.f_model(self.u_model, self.vars, *self.X_in)
-        print(self.vars)
-
         if self.col_weights is not None:
             return MSE(u_pred, self.u) + g_MSE(f_u_pred, constant(0.0), self.col_weights ** 2)
         else:
@@ -273,15 +272,18 @@ class DiscoveryModel():
     def fit(self, tf_iter):
         self.train_loop(tf_iter)
 
-    # @tf.function
     def train_loop(self, tf_iter):  # sourcery skip: move-assign
         start_time = time.time()
-        for i in range(tf_iter):
-            loss_value = self.train_op()
-            if i % 100 == 0:
-                elapsed = time.time() - start_time
-                print('It: %d, Time: %.2f' % (i, elapsed))
-                tf.print(f"loss_value: {loss_value}")
-                var = [var.numpy() for var in self.vars]
-                tf.print(f"vars estimate(s): {var}")
-                start_time = time.time()
+        print_screen(self, discovery_model=True)
+        with trange(tf_iter) as t:
+            for i in t:
+                loss_value = self.train_op()
+                if i % 10 == 0:
+                    # elapsed = time.time() - start_time
+                    # print('It: %d, Time: %.2f' % (i, elapsed))
+                    # tf.print(f"loss_value: {loss_value}")
+                    var = [var.numpy() for var in self.vars]
+                    t.set_postfix(loss=loss_value.numpy())
+                    t.set_postfix(vars=var)
+                    # tf.print(f"vars estimate(s): {var}")
+                    # start_time = time.time()
