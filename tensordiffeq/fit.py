@@ -42,19 +42,14 @@ def fit(obj, tf_iter=0, newton_iter=0, batch_sz=None, newton_eager=True):
         for epoch in t:
             loss_value = train_op_fn(n_batches, obj)
             # Description will be displayed on the left
-            t.set_description('Adam epoch %i' % (epoch+1))
+            t.set_description('Adam epoch %i' % (epoch + 1))
             # Postfix will be displayed on the right,
             # formatted automatically based on argument's datatype
             if epoch % 10 == 0:
-                elapsed = time.time() - start_time
                 t.set_postfix(loss=loss_value.numpy())
-                #
-                # print('It: %d, Time: %.2f, loss: %.6f' % (epoch, elapsed, loss_value.numpy()))
-                # tf.print(f"total loss: {loss_value}")
-                start_time = time.time()
+
 
     # tf.profiler.experimental.stop()
-
 
     # tf.profiler.experimental.start('../cache/tblogdir1')
     if newton_iter > 0:
@@ -97,7 +92,7 @@ def lbfgs_op(func, init_params, newton_iter):
 
 
 def train_op_inner(obj):
-    @tf.function
+    @tf.function()
     def apply_grads(n_batches, obj=obj):
         for _ in range(n_batches):
             # unstack = tf.unstack(obj.u_model.trainable_variables, axis = 2)
@@ -124,7 +119,6 @@ def train_op_inner(obj):
             return loss_value
 
     return apply_grads
-
 
 
 def fit_dist(obj, tf_iter, newton_iter, batch_sz=None, newton_eager=True):
@@ -180,17 +174,17 @@ def fit_dist(obj, tf_iter, newton_iter, batch_sz=None, newton_eager=True):
         return train_loss
 
     def train_loop(obj, tf_iter, STEPS):
-
+        print_screen(obj)
         start_time = time.time()
-        for epoch in range(tf_iter):
-            loss = dist_loop(obj, STEPS)
-
-            if epoch % 100 == 0:
-                elapsed = time.time() - start_time
-                template = ("Epoch {}, Time: {}, Loss: {}")
-                print(template.format(epoch, elapsed, loss))
-                # print('It: %d, Time: %.2f, loss: %.9f' % (epoch, elapsed, tf.get_static_value(loss)))
-                start_time = time.time()
+        with trange(tf_iter) as t:
+            for epoch in t:
+                loss = dist_loop(obj, STEPS)
+                t.set_description('Adam epoch %i' % (epoch + 1))
+                if epoch % 10 == 0:
+                    elapsed = time.time() - start_time
+                    t.set_postfix(loss=loss.numpy())
+                    # print('It: %d, Time: %.2f, loss: %.9f' % (epoch, elapsed, tf.get_static_value(loss)))
+                    start_time = time.time()
 
     print("starting Adam training")
     STEPS = np.max((obj.n_batches // obj.strategy.num_replicas_in_sync, 1))
