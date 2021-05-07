@@ -188,9 +188,9 @@ def fit_dist(obj, tf_iter, newton_iter, batch_sz=None, newton_eager=True):
 
     print("starting Adam training")
     STEPS = np.max((obj.n_batches // obj.strategy.num_replicas_in_sync, 1))
-    tf.profiler.experimental.start('../cache/tblogdir1')
+    # tf.profiler.experimental.start('../cache/tblogdir1')
     train_loop(obj, tf_iter, STEPS)
-    tf.profiler.experimental.stop()
+    # tf.profiler.experimental.stop()
 
     # l-bfgs-b optimization
     print("Starting L-BFGS training")
