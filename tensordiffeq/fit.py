@@ -34,8 +34,7 @@ def fit(obj, tf_iter=0, newton_iter=0, batch_sz=None, newton_eager=True):
     # these cant be tf.functions on initialization since the distributed strategy requires its own
     # graph using grad and adaptgrad, so they cant be compiled as tf.functions until we know dist/non-dist
     obj.grad = tf.function(obj.grad)
-    print_screen(obj)
-    print("starting Adam training")
+    if obj.verbose: print_screen(obj)
     # tf.profiler.experimental.start('../cache/tblogdir1')
     train_op_fn = train_op_inner(obj)
     with trange(tf_iter) as t:
@@ -97,22 +96,18 @@ def train_op_inner(obj):
         for _ in range(n_batches):
             # unstack = tf.unstack(obj.u_model.trainable_variables, axis = 2)
             obj.variables = obj.u_model.trainable_variables
-            if obj.isAdaptive and obj.u_weights is not None and obj.col_weights is not None:
-                obj.variables.extend([obj.u_weights, obj.col_weights])
+            obj.variables = obj.u_model.trainable_variables
+            if obj.isAdaptive:
+                obj.variables.extend(obj.lambdas)
                 loss_value, grads = obj.grad()
-                obj.tf_optimizer.apply_gradients(zip(grads[:-2], obj.u_model.trainable_variables))
-                obj.tf_optimizer_weights.apply_gradients(
-                    zip([-grads[-2], -grads[-1]], [obj.u_weights, obj.col_weights]))
-            elif obj.isAdaptive and obj.u_weights is None and obj.col_weights is not None:
-                obj.variables.extend([obj.col_weights])
-                loss_value, grads = obj.grad()
-                obj.tf_optimizer.apply_gradients(zip(grads[:-1], obj.u_model.trainable_variables))
-                obj.tf_optimizer_weights.apply_gradients(zip([-grads[-1]], [obj.col_weights]))
-            elif obj.isAdaptive and obj.u_weights is not None and obj.col_weights is None:
-                obj.variables.extend([obj.u_weights])
-                loss_value, grads = obj.grad()
-                obj.tf_optimizer.apply_gradients(zip(grads[:-1], obj.u_model.trainable_variables))
-                obj.tf_optimizer_weights.apply_gradients(zip([-grads[-1]], [obj.u_weights]))
+
+                n_lambdas = len(obj.lambdas)
+                graph_w = grads[:-n_lambdas]
+                grads_lambda = grads[-n_lambdas:]
+                grad_neg = [-x for x in grads_lambda]
+
+                obj.tf_optimizer.apply_gradients(zip(graph_w, obj.u_model.trainable_variables))
+                obj.tf_optimizer_weights.apply_gradients(zip(grad_neg, obj.lambdas))
             else:
                 loss_value, grads = obj.grad()
                 obj.tf_optimizer.apply_gradients(zip(grads, obj.u_model.trainable_variables))

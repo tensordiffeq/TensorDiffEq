@@ -10,11 +10,12 @@ from .output import print_screen
 
 
 class CollocationSolverND:
-    def __init__(self, assimilate=False):
+    def __init__(self, assimilate=False, verbose=True):
         self.assimilate = assimilate
+        self.verbose = verbose
 
     def compile(self, layer_sizes, f_model, domain, bcs, isAdaptive=False,
-                col_weights=None, u_weights=None, g=None, dist=False):
+                dict_adaptive=None, init_weigths=None, g=None, dist=False):
         """
         Args:
             layer_sizes: A list of layer sizes, can be overwritten via resetting u_model to a keras model
@@ -22,8 +23,9 @@ class CollocationSolverND:
             domain: a Domain object containing the information on the domain of the system
             bcs: a list of ICs/BCs for the problem
             isAdaptive: Boolean value determining whether to implement self-adaptive solving
-            col_weights: a tf.Variable vector of collocation point weights for self-adaptive solving
-            u_weights: a tf.Variable vector of initial boundary weights for self-adaptive training
+            dict_adaptive: a dictionary with boollean indicating adaptive loss for every loss function
+            init_weigths: a dictionary with keys "residual" and "BCs". Values must be a tuple with dimension
+                          equal to the number of  residuals and boundares conditions, respectively
             g: a function in terms of `lambda` for self-adapting solving. Defaults to lambda^2
             dist: A boolean value determining whether the solving will be distributed across multiple GPUs
 
@@ -36,28 +38,30 @@ class CollocationSolverND:
         self.sizes_w, self.sizes_b = get_sizes(layer_sizes)
         self.bcs = bcs
         self.f_model = get_tf_model(f_model)
-        self.isAdaptive = False
         self.g = g
         self.domain = domain
         self.dist = dist
-        self.col_weights = col_weights
-        self.u_weights = u_weights
         self.X_f_dims = tf.shape(self.domain.X_f)
         self.X_f_len = tf.slice(self.X_f_dims, [0], [1]).numpy()
         # must explicitly cast data into tf.float32 for stability
-        tmp = [tf.cast(np.reshape(vec, (-1, 1)), tf.float32) for i, vec in enumerate(self.domain.X_f.T)]
-        self.X_f_in = np.asarray(tmp)
+        # tmp = [tf.cast(np.reshape(vec, (-1, 1)), tf.float32) for i, vec in enumerate(self.domain.X_f.T)]
+        # self.X_f_in = np.asarray(tmp)
+        self.X_f_in = [tf.cast(np.reshape(vec, (-1, 1)), tf.float32) for i, vec in enumerate(self.domain.X_f.T)]
         self.u_model = neural_net(self.layer_sizes)
+        self.lambdas = self.dict_adaptive = self.lambdas_map = None
+        self.isAdaptive = isAdaptive
 
-        if isAdaptive:
-            self.isAdaptive = True
-            if self.col_weights is None and self.u_weights is None:
+        if self.isAdaptive:
+            self.dict_adaptive = dict_adaptive
+            self.lambdas, self.lambdas_map = initialize_weigths_loss(init_weigths)
+
+            if dict_adaptive is None and init_weigths is None:
                 raise Exception("Adaptive weights selected but no inputs were specified!")
         if (
-                not isAdaptive
-                and self.col_weights is not None
-                and self.u_weights is not None
-        ):
+                self.isAdaptive is False
+                and self.dict_adaptive is not None
+                and self.lambdas is not None
+            ):
             raise Exception(
                 "Adaptive weights are turned off but weight vectors were provided. Set the weight vectors to "
                 "\"none\" to continue")
@@ -72,49 +76,98 @@ class CollocationSolverND:
         self.data_s = y
 
     def update_loss(self):
-        loss_tmp = 0.0
-        # Periodic BC iteration for all components of deriv_model
-        for bc in self.bcs:
-            if bc.isPeriodic:
-                for i, dim in enumerate(bc.var):
-                    for j, lst in enumerate(dim):
-                        for k, tup in enumerate(lst):
-                            upper = bc.u_x_model(self.u_model, bc.upper[i])[j][k]
-                            lower = bc.u_x_model(self.u_model, bc.lower[i])[j][k]
-                            msq = MSE(upper, lower)
-                            loss_tmp = tf.math.add(loss_tmp, msq)
-                continue
-            # initial BCs, including adaptive model
-            if bc.isInit:
-                if self.isAdaptive:
-                    loss_tmp = tf.math.add(loss_tmp, MSE(self.u_model(bc.input), bc.val, self.u_weights))
-                else:
-                    loss_tmp = tf.math.add(loss_tmp, MSE(self.u_model(bc.input), bc.val))
-            # Dirichlect BC, will need to add more cases for Neumann BC, etc as more
-            # BC types are added
-            if bc.isNeumann:
-                for i, dim in enumerate(bc.var):
-                    for j, lst in enumerate(dim):
-                        for k, tup in enumerate(lst):
-                            target = tf.cast(bc.u_x_model(self.u_model, bc.input[i])[j][k], dtype=tf.float32)
-                            msq = MSE(bc.val, target)
-                            loss_tmp = tf.math.add(loss_tmp, msq)
-            # This is true unless the BC loss can be evaluated using the MSE function explicitly
-            else:
-                loss_tmp = tf.math.add(loss_tmp, MSE(self.u_model(bc.input), bc.val))
+        loss_bcs = 0.
 
-        f_u_pred = self.f_model(self.u_model, *self.X_f_in)
-
+        #####################################
+        # BOUNDARIES and INIT conditions
+        #####################################
+        # Check if adaptive is allowed
         if self.isAdaptive:
-            if self.g is not None:
-                mse_f_u = g_MSE(f_u_pred, constant(0.0), self.g(self.col_weights))
-            else:
-                mse_f_u = MSE(f_u_pred, constant(0.0), self.col_weights)
-        else:
-            mse_f_u = MSE(f_u_pred, constant(0.0))
+            idx_lambda_bcs = self.lambdas_map['bcs'][0]
 
-        loss_tmp = tf.math.add(loss_tmp, mse_f_u)
-        return loss_tmp
+        for counter_bc, bc in enumerate(self.bcs):
+            loss_bc = 0.
+            # Check if the current BS is adaptive
+            if self.isAdaptive:
+                isBC_adaptive = self.dict_adaptive["BCs"][counter_bc]
+            else:
+                isBC_adaptive = False
+
+            # Periodic BC iteration for all components of deriv_model
+            if bc.isPeriodic:
+                if isBC_adaptive:
+                    # TODO: include Adapative Periodic Boundaries Conditions
+                    raise Exception('TensorDiffEq is currently not accepting Adapative Periodic Boundaries Conditions')
+                else:
+                    for i, dim in enumerate(bc.var):
+                        for j, lst in enumerate(dim):
+                            for k, tup in enumerate(lst):
+                                upper = bc.u_x_model(self.u_model, bc.upper[i])[j][k]
+                                lower = bc.u_x_model(self.u_model, bc.lower[i])[j][k]
+                                msq = MSE(upper, lower)
+                                loss_bc = tf.math.add(loss_bc, msq)
+            # initial BCs, including adaptive model
+            elif bc.isInit:
+                if isBC_adaptive:
+                    loss_bc = MSE(self.u_model(bc.input), bc.val, self.lambdas[idx_lambda_bcs])
+                    idx_lambda_bcs += 1
+                else:
+                    loss_bc = MSE(self.u_model(bc.input), bc.val)
+            # BC types are added
+            elif bc.isNeumann:
+                if isBC_adaptive:
+                    #TODO: include Adapative Neumann Boundaries Conditions
+                    raise Exception('TensorDiffEq is currently not accepting Adapative Neumann Boundaries Conditions')
+                else:
+                    for i, dim in enumerate(bc.var):
+                        for j, lst in enumerate(dim):
+                            for k, tup in enumerate(lst):
+                                target = tf.cast(bc.u_x_model(self.u_model, bc.input[i])[j][k], dtype=tf.float32)
+                                msq = MSE(bc.val, target)
+                                loss_bc = tf.math.add(loss_bc, msq)
+
+            elif bc.isDirichlect:
+                if isBC_adaptive:
+                    loss_bc = MSE(self.u_model(bc.input), bc.val, self.lambdas[idx_lambda_bcs])
+                    idx_lambda_bcs += 1
+                else:
+                    loss_bc = MSE(self.u_model(bc.input), bc.val)
+
+            else:
+                raise Exception('Boundary condition type is not acceptable')
+
+            loss_bcs = tf.add(loss_bcs, loss_bc)
+
+        #####################################
+        # Residual Equations
+        #####################################
+        # pass thorough the forward method
+        f_u_preds = self.f_model(self.u_model, *self.X_f_in)
+
+        # If it is only one residual, just convert it to a tuple of one element
+        if not isinstance(f_u_preds, tuple):
+            f_u_preds = f_u_preds,
+
+        loss_res = 0.
+        for counter_res, f_u_pred in enumerate(f_u_preds):
+            # Check if the current Residual is adaptive
+            if self.isAdaptive:
+                isRes_adaptive = self.dict_adaptive["residual"][counter_res]
+                idx_lambda_res = self.lambdas_map['residual'][0]
+                if isRes_adaptive:
+                    if self.g is not None:
+                        loss_r = g_MSE(f_u_pred, constant(0.0), self.g(self.lambdas[idx_lambda_res]))
+                    else:
+                        loss_r = MSE(f_u_pred, constant(0.0), self.lambdas[idx_lambda_res])
+                    idx_lambda_res += 1
+            else:
+                loss_r = MSE(f_u_pred, constant(0.0))
+
+            loss_res = tf.math.add(loss_r, loss_res)
+
+        loss_total = tf.math.add(loss_res, loss_bcs)
+
+        return loss_total
 
     # @tf.function
     def grad(self):
@@ -198,9 +251,10 @@ class CollocationSolverND:
         u_star = self.u_model(X_star)
         # split data into tuples for ND support
         # must explicitly cast data into tf.float32 for stability
-        tmp = [tf.cast(np.reshape(vec, (-1, 1)), tf.float32) for i, vec in enumerate(X_star.T)]
-        X_star = np.asarray(tmp)
-        X_star = tuple(X_star)
+        # tmp = [tf.cast(np.reshape(vec, (-1, 1)), tf.float32) for i, vec in enumerate(X_star.T)]
+        # X_star = np.asarray(tmp)
+        # X_star = tuple(X_star)
+        X_star = [tf.cast(np.reshape(vec, (-1, 1)), tf.float32) for i, vec in enumerate(X_star.T)]
         f_u_star = self.f_model(self.u_model, *X_star)
         return u_star.numpy(), f_u_star.numpy()
 
@@ -209,6 +263,7 @@ class CollocationSolverND:
 
     def load_model(self, path, compile_model=False):
         self.u_model = tf.keras.models.load_model(path, compile=compile_model)
+
 
 # WIP
 # TODO Distributed Discovery Model
