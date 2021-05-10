@@ -43,14 +43,24 @@ def f_model(u_model, x, t):
     f_u = u_t - c1 * u_xx + c2 * u * u * u - c2 * u
     return f_u
 
+## Which loss functions will have adaptive weights
+# "residual" should a tuple for the case of multiple residual equation
+# BCS have fo follow the same order as the previously defined BCs list
+dict_adaptive = {"residual": [True],
+                 "BCs": [True, False]}
 
-col_weights = tf.Variable(tf.random.uniform([N_f, 1]), trainable=True, dtype=tf.float32)
-u_weights = tf.Variable(100 * tf.random.uniform([512, 1]), trainable=True, dtype=tf.float32)
+## Weights initialization
+# dictionary with keys "residual" and "BCs". Values must be a tuple with dimension
+# equal to the number of  residuals and boundares conditions, respectively
+init_weigths = {"residual": [tf.random.uniform([N_f, 1])],
+                "BCs": [100 * tf.random.uniform([512, 1]), None]}
+
 
 layer_sizes = [2, 128, 128, 128, 128, 1]
 
 model = CollocationSolverND()
-model.compile(layer_sizes, f_model, Domain, BCs, isAdaptive=True, col_weights=col_weights, u_weights=u_weights)
+model.compile(layer_sizes, f_model, Domain, BCs, isAdaptive=True,
+              dict_adaptive=dict_adaptive, init_weigths=init_weigths)
 model.fit(tf_iter=10000, newton_iter=10000)
 
 # Load high-fidelity data for error calculation

@@ -49,6 +49,7 @@ class dirichletBC(BC):
         self.dict_ = next(item for item in self.domain.domaindict if item["identifier"] == self.var)
         self.target = self.dict_[var+target]
         self.compile()
+        self.isDirichlect = True
 
     def create_input(self):
         repeated_value = self.create_target_input_repeat(self.var, self.target)
@@ -73,6 +74,7 @@ class FunctionDirichletBC(BC):
         self.targets = self.dict_[var+target]
         self.compile()
         self.create_target()
+        self.isDirichlect = True
 
     def create_input(self):
         dims = self.get_not_dims(self.var)
