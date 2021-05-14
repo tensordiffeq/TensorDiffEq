@@ -13,6 +13,7 @@ class CollocationSolverND:
     def __init__(self, assimilate=False, verbose=True):
         self.assimilate = assimilate
         self.verbose = verbose
+        self.losses = []
 
     def compile(self, layer_sizes, f_model, domain, bcs, isAdaptive=False,
                 dict_adaptive=None, init_weigths=None, g=None, dist=False):
@@ -90,7 +91,7 @@ class CollocationSolverND:
         self.data_s = y
 
     def update_loss(self):
-        loss_bcs = 0.
+        # loss_epoch = {}
 
         #####################################
         # BOUNDARIES and INIT conditions
@@ -100,6 +101,7 @@ class CollocationSolverND:
             if any(self.dict_adaptive['BCs']):
                 idx_lambda_bcs = self.lambdas_map['bcs'][0]
 
+        loss_bcs = 0.
         for counter_bc, bc in enumerate(self.bcs):
             loss_bc = 0.
             # Check if the current BS is adaptive
@@ -114,6 +116,7 @@ class CollocationSolverND:
                     # TODO: include Adapative Periodic Boundaries Conditions
                     raise Exception('TensorDiffEq is currently not accepting Adapative Periodic Boundaries Conditions')
                 else:
+                    # TODO: check if we need to save all individual losses
                     for i, dim in enumerate(bc.var):
                         for j, lst in enumerate(dim):
                             for k, tup in enumerate(lst):
@@ -151,6 +154,7 @@ class CollocationSolverND:
             else:
                 raise Exception('Boundary condition type is not acceptable')
 
+            # loss_epoch[f'BC_{counter_bc}'] = np.asarray(loss_bc)
             loss_bcs = tf.add(loss_bcs, loss_bc)
 
         #####################################
@@ -180,9 +184,13 @@ class CollocationSolverND:
             else:
                 loss_r = MSE(f_u_pred, constant(0.0))
 
+            # loss_epoch[f'Residual_{counter_res}'] = np.asarray(loss_r)
             loss_res = tf.math.add(loss_r, loss_res)
 
         loss_total = tf.math.add(loss_res, loss_bcs)
+
+        # loss_epoch['Total Loss'] = np.asarray(loss_total)
+        # self.losses.append(loss_epoch)
 
         return loss_total
 
