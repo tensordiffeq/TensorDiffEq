@@ -59,7 +59,7 @@ init_weigths = {"residual": [tf.random.uniform([N_f, 1])],
 layer_sizes = [2, 128, 128, 128, 128, 1]
 
 model = CollocationSolverND()
-model.compile(layer_sizes, f_model, Domain, BCs, isAdaptive=True,
+model.compile(layer_sizes, f_model, Domain, BCs, Adaptive_type='self-adaptive',
               dict_adaptive=dict_adaptive, init_weigths=init_weigths)
 model.fit(tf_iter=10000, newton_iter=10000)
 

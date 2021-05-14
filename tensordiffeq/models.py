@@ -15,7 +15,7 @@ class CollocationSolverND:
         self.verbose = verbose
         self.losses = []
 
-    def compile(self, layer_sizes, f_model, domain, bcs, isAdaptive=False,
+    def compile(self, layer_sizes, f_model, domain, bcs, Adaptive_type=None,
                 dict_adaptive=None, init_weigths=None, g=None, dist=False):
         """
         Args:
@@ -23,7 +23,11 @@ class CollocationSolverND:
             f_model: PDE definition
             domain: a Domain object containing the information on the domain of the system
             bcs: a list of ICs/BCs for the problem
-            isAdaptive: Boolean value determining whether to implement self-adaptive solving
+            Adaptive_type: string with the adaptive method
+                                1 - Self-adaptive (https://arxiv.org/pdf/2009.04544.pdf),
+                                2 - Self-adaptive_loss with weights for the entire loss function,
+                                3 - NTK
+                                4 - None (no adaptive method)
             dict_adaptive: a dictionary with boollean indicating adaptive loss for every loss function
             init_weigths: a dictionary with keys "residual" and "BCs". Values must be a tuple with dimension
                           equal to the number of  residuals and boundares conditions, respectively
@@ -50,19 +54,28 @@ class CollocationSolverND:
         self.X_f_in = [tf.cast(np.reshape(vec, (-1, 1)), tf.float32) for i, vec in enumerate(self.domain.X_f.T)]
         self.u_model = neural_net(self.layer_sizes)
         self.lambdas = self.dict_adaptive = self.lambdas_map = None
-        self.isAdaptive = isAdaptive
 
-        if self.isAdaptive:
-            self.dict_adaptive = dict_adaptive
-            self.lambdas, self.lambdas_map = initialize_weigths_loss(init_weigths)
+        self.isAdaptive = True
+        Adaptive_type = Adaptive_type.lower()
 
-            if dict_adaptive is None and init_weigths is None:
-                raise Exception("Adaptive weights selected but no inputs were specified!")
+        if Adaptive_type == 'self-adaptive':
+            self.weight_outside_sum = False
+        elif Adaptive_type == 'self-adaptive_loss' or Adaptive_type == 'ntk':
+            self.weight_outside_sum = True
+        elif Adaptive_type is None:
+            self.isAdaptive = False
+        else:
+            raise Exception("Adaptive method invalid!")
+
+        # TODO implement NTK method
+        if Adaptive_type == 'ntk':
+            raise Exception("NTK method has not been implemented yet")
+
         if (
                 self.isAdaptive is False
                 and self.dict_adaptive is not None
                 and self.lambdas is not None
-            ):
+        ):
             raise Exception(
                 "Adaptive weights are turned off but weight vectors were provided. Set the weight vectors to "
                 "\"none\" to continue")
@@ -127,7 +140,7 @@ class CollocationSolverND:
             # initial BCs, including adaptive model
             elif bc.isInit:
                 if isBC_adaptive:
-                    loss_bc = MSE(self.u_model(bc.input), bc.val, self.lambdas[idx_lambda_bcs])
+                    loss_bc = MSE(self.u_model(bc.input), bc.val, self.lambdas[idx_lambda_bcs], self.weight_outside_sum)
                     idx_lambda_bcs += 1
                 else:
                     loss_bc = MSE(self.u_model(bc.input), bc.val)
@@ -146,7 +159,7 @@ class CollocationSolverND:
 
             elif bc.isDirichlect:
                 if isBC_adaptive:
-                    loss_bc = MSE(self.u_model(bc.input), bc.val, self.lambdas[idx_lambda_bcs])
+                    loss_bc = MSE(self.u_model(bc.input), bc.val, self.lambdas[idx_lambda_bcs], self.weight_outside_sum)
                     idx_lambda_bcs += 1
                 else:
                     loss_bc = MSE(self.u_model(bc.input), bc.val)
@@ -177,7 +190,7 @@ class CollocationSolverND:
                     if self.g is not None:
                         loss_r = g_MSE(f_u_pred, constant(0.0), self.g(self.lambdas[idx_lambda_res]))
                     else:
-                        loss_r = MSE(f_u_pred, constant(0.0), self.lambdas[idx_lambda_res])
+                        loss_r = MSE(f_u_pred, constant(0.0), self.lambdas[idx_lambda_res], self.weight_outside_sum)
                     idx_lambda_res += 1
                 else:
                     loss_r = MSE(f_u_pred, constant(0.0))

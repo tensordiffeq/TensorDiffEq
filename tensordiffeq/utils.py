@@ -35,9 +35,12 @@ def get_sizes(layer_sizes):
     return sizes_w, sizes_b
 
 
-def MSE(pred, actual, weights=None):
+def MSE(pred, actual, weights=None, outside_sum=False):
     if weights is not None:
-        return tf.reduce_mean(tf.square(weights * tf.math.subtract(pred, actual)))
+        if outside_sum:
+            return weights * tf.reduce_mean(tf.square(tf.math.subtract(pred, actual)))
+        else:
+            return tf.reduce_mean(tf.square(weights * tf.math.subtract(pred, actual)))
     return tf.reduce_mean(tf.square(tf.math.subtract(pred, actual)))
 
 
