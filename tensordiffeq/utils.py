@@ -96,5 +96,17 @@ def flatten_and_stack(mesh):
     return output.T  # returns in an [nxm] matrix
 
 
-final_loss = None
-times = []
+def initialize_weigths_loss(init_weigths):
+    lambdas = []
+    lambdas_map = {}
+    counter = 0
+
+    for i, (key, values) in enumerate(init_weigths.items()):
+        list = []
+        for value in values:
+            if value is not None:
+                lambdas.append(tf.Variable(value, trainable=True, dtype=tf.float32))
+                list.append(counter)
+                counter += 1
+        lambdas_map[key.lower()] = list
+    return lambdas, lambdas_map
