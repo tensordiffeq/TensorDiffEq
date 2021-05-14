@@ -66,6 +66,20 @@ class CollocationSolverND:
                 "Adaptive weights are turned off but weight vectors were provided. Set the weight vectors to "
                 "\"none\" to continue")
 
+        if self.isAdaptive:
+            if dict_adaptive is None or init_weigths is None:
+                raise Exception("Adaptive weights selected but no inputs were specified!")
+
+            # check if at least one loss was marked to be adaptive
+            is_all_false = all(not any(value) for value in dict_adaptive.values())
+            if is_all_false:
+                raise Exception("Adaptive method was selected but none loss war marked to be adaptive")
+
+            self.dict_adaptive = dict_adaptive
+            self.lambdas, self.lambdas_map = initialize_weigths_loss(init_weigths, dict_adaptive)
+
+
+
     def compile_data(self, x, t, y):
         if not self.assimilate:
             raise Exception(
@@ -83,7 +97,8 @@ class CollocationSolverND:
         #####################################
         # Check if adaptive is allowed
         if self.isAdaptive:
-            idx_lambda_bcs = self.lambdas_map['bcs'][0]
+            if any(self.dict_adaptive['BCs']):
+                idx_lambda_bcs = self.lambdas_map['bcs'][0]
 
         for counter_bc, bc in enumerate(self.bcs):
             loss_bc = 0.
@@ -153,13 +168,15 @@ class CollocationSolverND:
             # Check if the current Residual is adaptive
             if self.isAdaptive:
                 isRes_adaptive = self.dict_adaptive["residual"][counter_res]
-                idx_lambda_res = self.lambdas_map['residual'][0]
                 if isRes_adaptive:
+                    idx_lambda_res = self.lambdas_map['residual'][0]
                     if self.g is not None:
                         loss_r = g_MSE(f_u_pred, constant(0.0), self.g(self.lambdas[idx_lambda_res]))
                     else:
                         loss_r = MSE(f_u_pred, constant(0.0), self.lambdas[idx_lambda_res])
                     idx_lambda_res += 1
+                else:
+                    loss_r = MSE(f_u_pred, constant(0.0))
             else:
                 loss_r = MSE(f_u_pred, constant(0.0))
 
