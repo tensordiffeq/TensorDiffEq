@@ -47,3 +47,5 @@ If you use TensorDiffEq in your work, please site it via:
 }
 ```
 
+### Thanks to our additional contributors: 
+@marcelodallaqua, @ragusa
