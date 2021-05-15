@@ -52,7 +52,7 @@ dict_adaptive = {"residual": [True],
 ## Weights initialization
 # dictionary with keys "residual" and "BCs". Values must be a tuple with dimension
 # equal to the number of  residuals and boundares conditions, respectively
-init_weigths = {"residual": [tf.random.uniform([N_f, 1])],
+init_weights = {"residual": [tf.random.uniform([N_f, 1])],
                 "BCs": [100 * tf.random.uniform([512, 1]), None]}
 
 
@@ -60,7 +60,7 @@ layer_sizes = [2, 128, 128, 128, 128, 1]
 
 model = CollocationSolverND()
 model.compile(layer_sizes, f_model, Domain, BCs, Adaptive_type='self-adaptive',
-              dict_adaptive=dict_adaptive, init_weigths=init_weigths)
+              dict_adaptive=dict_adaptive, init_weights=init_weights)
 model.fit(tf_iter=10000, newton_iter=10000)
 
 # Load high-fidelity data for error calculation

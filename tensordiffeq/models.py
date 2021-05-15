@@ -16,7 +16,7 @@ class CollocationSolverND:
         self.losses = []
 
     def compile(self, layer_sizes, f_model, domain, bcs, Adaptive_type=None,
-                dict_adaptive=None, init_weigths=None, g=None, dist=False):
+                dict_adaptive=None, init_weights=None, g=None, dist=False):
         """
         Args:
             layer_sizes: A list of layer sizes, can be overwritten via resetting u_model to a keras model
@@ -29,7 +29,7 @@ class CollocationSolverND:
                                 3 - NTK
                                 4 - None (no adaptive method)
             dict_adaptive: a dictionary with boollean indicating adaptive loss for every loss function
-            init_weigths: a dictionary with keys "residual" and "BCs". Values must be a tuple with dimension
+            init_weights: a dictionary with keys "residual" and "BCs". Values must be a tuple with dimension
                           equal to the number of  residuals and boundares conditions, respectively
             g: a function in terms of `lambda` for self-adapting solving. Defaults to lambda^2
             dist: A boolean value determining whether the solving will be distributed across multiple GPUs
@@ -81,7 +81,7 @@ class CollocationSolverND:
                 "\"none\" to continue")
 
         if self.isAdaptive:
-            if dict_adaptive is None or init_weigths is None:
+            if dict_adaptive is None or init_weights is None:
                 raise Exception("Adaptive weights selected but no inputs were specified!")
 
             # check if at least one loss was marked to be adaptive
@@ -90,7 +90,7 @@ class CollocationSolverND:
                 raise Exception("Adaptive method was selected but none loss war marked to be adaptive")
 
             self.dict_adaptive = dict_adaptive
-            self.lambdas, self.lambdas_map = initialize_weigths_loss(init_weigths, dict_adaptive)
+            self.lambdas, self.lambdas_map = initialize_weights_loss(init_weights, dict_adaptive)
 
 
 
