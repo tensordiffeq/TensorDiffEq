@@ -31,8 +31,8 @@ class CollocationSolverND:
             dict_adaptive: a dictionary with boollean indicating adaptive loss for every loss function
             init_weights: a dictionary with keys "residual" and "BCs". Values must be a tuple with dimension
                           equal to the number of  residuals and boundares conditions, respectively
-            g: a function in terms of `lambda` for self-adapting solving. Defaults to lambda^2
-            dist: A boolean value determining whether the solving will be distributed across multiple GPUs
+            g: a function in terms of `lambda` for self-adaptive solving. Defaults to lambda^2
+            dist: A boolean value determining whether the training will be distributed across multiple GPUs
 
         Returns:
             None
@@ -87,7 +87,7 @@ class CollocationSolverND:
             # check if at least one loss was marked to be adaptive
             is_all_false = all(not any(value) for value in dict_adaptive.values())
             if is_all_false:
-                raise Exception("Adaptive method was selected but none loss war marked to be adaptive")
+                raise Exception("Adaptive method was selected but none loss was marked to be adaptive")
 
             self.dict_adaptive = dict_adaptive
             self.lambdas, self.lambdas_map = initialize_weights_loss(init_weights, dict_adaptive)
