@@ -99,12 +99,12 @@ def flatten_and_stack(mesh):
     return output.T  # returns in an [nxm] matrix
 
 
-def initialize_weigths_loss(init_weigths):
+def initialize_weights_loss(init_weights):
     lambdas = []
     lambdas_map = {}
     counter = 0
 
-    for i, (key, values) in enumerate(init_weigths.items()):
+    for i, (key, values) in enumerate(init_weights.items()):
         list = []
         for value in values:
             if value is not None:
