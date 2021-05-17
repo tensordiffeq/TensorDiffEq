@@ -99,15 +99,15 @@ def flatten_and_stack(mesh):
     return output.T  # returns in an [nxm] matrix
 
 
-def initialize_weights_loss(init_weights):
+def initialize_weights_loss(init_weights, adaptive_map):
     lambdas = []
     lambdas_map = {}
     counter = 0
 
     for i, (key, values) in enumerate(init_weights.items()):
         list = []
-        for value in values:
-            if value is not None:
+        for j, value in enumerate(values):
+            if value is not None and adaptive_map[key][j] is not False:
                 lambdas.append(tf.Variable(value, trainable=True, dtype=tf.float32))
                 list.append(counter)
                 counter += 1
