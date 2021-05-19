@@ -15,7 +15,7 @@ class CollocationSolverND:
         self.verbose = verbose
         self.losses = []
 
-    def compile(self, layer_sizes, f_model, domain, bcs, Adaptive_type=None,
+    def compile(self, layer_sizes, f_model, domain, bcs, Adaptive_type=0,
                 dict_adaptive=None, init_weights=None, g=None, dist=False):
         """
         Args:
@@ -24,10 +24,10 @@ class CollocationSolverND:
             domain: a Domain object containing the information on the domain of the system
             bcs: a list of ICs/BCs for the problem
             Adaptive_type: string with the adaptive method
+                                0 - None (no adaptive method)
                                 1 - Self-adaptive (https://arxiv.org/pdf/2009.04544.pdf),
                                 2 - Self-adaptive_loss with weights for the entire loss function,
-                                3 - NTK
-                                4 - None (no adaptive method)
+                                3 - NTK (https://arxiv.org/abs/2007.14527)
             dict_adaptive: a dictionary with boollean indicating adaptive loss for every loss function
             init_weights: a dictionary with keys "residual" and "BCs". Values must be a tuple with dimension
                           equal to the number of  residuals and boundares conditions, respectively
@@ -53,16 +53,19 @@ class CollocationSolverND:
         # self.X_f_in = np.asarray(tmp)
         self.X_f_in = [tf.cast(np.reshape(vec, (-1, 1)), tf.float32) for i, vec in enumerate(self.domain.X_f.T)]
         self.u_model = neural_net(self.layer_sizes)
+        self.Adaptive_type = Adaptive_type
         self.lambdas = self.dict_adaptive = self.lambdas_map = None
 
-        self.isAdaptive = True
-        Adaptive_type = Adaptive_type.lower()
-
-        if Adaptive_type == 'self-adaptive':
+        if Adaptive_type == 0:  # baseline PINNs
+            self.isAdaptive = False
+        elif Adaptive_type == 1:  # Self-Adaptive PINNs
             self.weight_outside_sum = False
-        elif Adaptive_type == 'self-adaptive_loss' or Adaptive_type == 'ntk':
+            self.isAdaptive = True
+        elif Adaptive_type == 2:
             self.weight_outside_sum = True
-        elif Adaptive_type is None:
+            self.isAdaptive = True
+        elif Adaptive_type == 3:
+            self.weight_outside_sum = True
             self.isAdaptive = False
         else:
             raise Exception("Adaptive method invalid!")
