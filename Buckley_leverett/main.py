@@ -182,7 +182,6 @@ for case in case_tests:
     model.fit(tf_iter=epoch_adam, newton_iter=epoch_lbfgs)
 
     # Forward pass through model
-
     u_pred, f_u_pred = model.predict(X_star)
 
     # Saving outputs for printing
