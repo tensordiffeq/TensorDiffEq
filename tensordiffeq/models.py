@@ -107,7 +107,7 @@ class CollocationSolverND:
         self.data_s = y
 
     def update_loss(self):
-        # loss_epoch = {}
+        loss_epoch = {}
 
         #####################################
         # BOUNDARIES and INIT conditions
@@ -170,7 +170,7 @@ class CollocationSolverND:
             else:
                 raise Exception('Boundary condition type is not acceptable')
 
-            # loss_epoch[f'BC_{counter_bc}'] = np.asarray(loss_bc)
+            loss_epoch[f'BC_{counter_bc}'] = loss_bc
             loss_bcs = tf.add(loss_bcs, loss_bc)
 
         #####################################
@@ -200,13 +200,13 @@ class CollocationSolverND:
             else:
                 loss_r = MSE(f_u_pred, constant(0.0))
 
-            # loss_epoch[f'Residual_{counter_res}'] = np.asarray(loss_r)
+            loss_epoch[f'Residual_{counter_res}'] = loss_r
             loss_res = tf.math.add(loss_r, loss_res)
 
         loss_total = tf.math.add(loss_res, loss_bcs)
 
-        # loss_epoch['Total Loss'] = np.asarray(loss_total)
-        # self.losses.append(loss_epoch)
+        loss_epoch['Total Loss'] = np.asarray(loss_total)
+        self.losses.append(loss_epoch)
 
         return loss_total
 
