@@ -111,19 +111,20 @@ layer_sizes = [2, 20, 20, 20, 20, 20, 20, 20, 20, 1]
 #                    5 - Important definitions
 # **********************************************************************
 flag_saving = True
-epoch_adam_std = 10
-epoch_lbfgs_std = 5
+epoch_adam_std = 10000
+epoch_lbfgs_std = 0
 
 # ***********************************************************************
 #                    6 - Config to cases to test
 # ***********************************************************************
 #  Relative permeabilities type
 flux_types = ['concave', 'non-convex', 'convex']
+flux_types = ['non-convex', 'convex']
 
 ## Diffusion term
 diffusions = {'concave': [None],
-              'non-convex': [None, 1.0e-2],  # [None, 1.0e-2, 2.5e-3, 1.0e-3],
-              'convex': [None, 1.0e-2]}  # [None, 2.5e-3],
+              'non-convex': [None],  # [None, 1.0e-2, 2.5e-3, 1.0e-3],
+              'convex': [None]}  # [None, 2.5e-3],
 
 ## ratio of phase viscosity: mu_o/mu_w
 Ms = {'concave': [2],
@@ -131,10 +132,10 @@ Ms = {'concave': [2],
       'convex': [None]}
 
 ## Diffusion term
-Adaptive_types = [0, 1, 2]
+Adaptive_types = [1]
 
-dict_adaptive = {"residual": [True],
-                 "BCs": [True, True]}
+dict_adaptive = {"residual": [False],
+                 "BCs": [True, False]}
 
 init_weights_inside = {"residual": [tf.ones([N_f, 1])],
                        "BCs": [tf.ones([512, 1]), tf.ones([201, 1])]}
@@ -157,10 +158,14 @@ X_star = creating_x_star(Domain)
 predictions = {key: {} for key in flux_types}
 losses = {key: {} for key in flux_types}
 
+print(f'Number of cases to test: {len(case_tests)}')
+
 print("Starting optimization at ", datetime.now().strftime("%H:%M:%S"))
 tic = time.perf_counter()
 
-for case in case_tests:
+for counter, case in enumerate(case_tests, 1):
+    print(f'Case {counter} of {len(case_tests)}')
+
     flux_type = case['flux_type']
     diffusion = case['diffusion']
     M = case['M']
@@ -182,14 +187,13 @@ for case in case_tests:
     model.fit(tf_iter=epoch_adam, newton_iter=epoch_lbfgs)
 
     # Forward pass through model
-
     u_pred, f_u_pred = model.predict(X_star)
 
     # Saving outputs for printing
     solver_method: str = 'Adaptive' if Adaptive_type != 0 else f'e_{diffusion}'
     adaptive_test: str = 'Self_adaptive' if Adaptive_type == 1 else 'Lagrangian'
 
-    solver_method: str = solver_method if Adaptive_type == 0 else f'{solver_method}_{adaptive_test}'
+    solver_method: str = solver_method if Adaptive_type == 0 else f'{adaptive_test}'
 
     predictions[flux_type].update({solver_method: (u_pred, f_u_pred)})
     losses[flux_type].update({solver_method: model.losses})
