@@ -2,9 +2,8 @@ from Analytical import u_analytical
 import pickle
 from utils_buckley_leverett import *
 
-
-#hprc_jobID = ['55901', '55902', '55903', '55904a', '55904b', '55914','55924']
-hprc_jobID = ['55904a', '55904b', '55914','55924']
+# hprc_jobID = ['55901', '55902', '55903', '55904a', '55904b', '55914','55924']
+hprc_jobID = ['56560', '56572', '56796']
 
 for hprc_jobID in hprc_jobID:
     if hprc_jobID != '':
@@ -42,3 +41,9 @@ for hprc_jobID in hprc_jobID:
         plot_solution_domain1D_v2([u_pred, f_u_pred], xt,
                                   ub=ub, lb=lb, Title=case + hprc_jobID, Legends=subcases,
                                   Exact_u=Exact_u)
+
+        ##
+
+        for j, u_pred in enumerate(u_pred.T):
+            error_u = find_L2_error(u_pred, Exact_u)
+            print(f'Error {subcases[j]} : {error_u:.3e}')

@@ -53,7 +53,6 @@ N_f = 10000
 
 Domain.generate_collocation_points(N_f)
 
-
 # ***********************************************************************
 #                    2 - Describe the physics of the model
 # ***********************************************************************
@@ -112,18 +111,18 @@ layer_sizes = [2, 20, 20, 20, 20, 20, 20, 20, 20, 1]
 # **********************************************************************
 flag_saving = True
 epoch_adam_std = 10000
-epoch_lbfgs_std = 0
+epoch_lbfgs_std = 10000
 
 # ***********************************************************************
 #                    6 - Config to cases to test
 # ***********************************************************************
 #  Relative permeabilities type
 flux_types = ['concave', 'non-convex', 'convex']
-flux_types = ['non-convex', 'convex']
+flux_types = ['non-convex']
 
 ## Diffusion term
 diffusions = {'concave': [None],
-              'non-convex': [None],  # [None, 1.0e-2, 2.5e-3, 1.0e-3],
+              'non-convex': [2.5e-3],  # [None, 1.0e-2, 2.5e-3, 1.0e-3],
               'convex': [None]}  # [None, 2.5e-3],
 
 ## ratio of phase viscosity: mu_o/mu_w
@@ -132,9 +131,9 @@ Ms = {'concave': [2],
       'convex': [None]}
 
 ## Diffusion term
-Adaptive_types = [1]
+Adaptive_types = [0, 1]
 
-dict_adaptive = {"residual": [False],
+dict_adaptive = {"residual": [True],
                  "BCs": [True, False]}
 
 init_weights_inside = {"residual": [tf.ones([N_f, 1])],
