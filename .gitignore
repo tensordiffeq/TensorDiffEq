@@ -6,3 +6,4 @@ dist/*
 examples/*.ipynb
 *.pickle
 *.xls*
+*.png
