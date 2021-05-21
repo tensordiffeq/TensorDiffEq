@@ -1,7 +1,7 @@
 matplotlib
-numpy
+numpy==1.19.2
 scipy
-tensorflow
+tensorflow==2.4.1
 tensorflow_probability
 pyDOE2
 pyfiglet
