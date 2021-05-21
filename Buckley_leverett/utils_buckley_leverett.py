@@ -38,7 +38,7 @@ def creating_cases(flux_types, diffusions, Ms,
                         init_weights = init_weights_outside
 
                     case = {'flux_type': flux_type,
-                            'diffusion': diffusion,
+                            'diffusion': None,
                             'M': M,
                             'Adaptive_type': Adaptive_type,
                             'dict_adaptive': dict_adaptive,
@@ -103,12 +103,13 @@ def plot_solution_domain1D_v2(preds, domain, ub, lb, Exact_u=None, u_transpose=F
     figsize = (width, 4.5 * 2)
     figsize = (8, 3)
 
+    X_star = np.hstack((X.flatten()[:, None], T.flatten()[:, None]))
+
     # Creading figure
     fig, axs = plt.subplots(1, 3, figsize=figsize)
     plt.subplots_adjust(wspace=wspace)
 
     for i, ax in enumerate(axs.flatten(), 1):
-        textstr = 'L2 Error\n'
         if Exact_u is not None:
             exact_u = Exact_u
             if ~np.all(exact_u == 0.0):
@@ -143,21 +144,15 @@ def plot_solution_domain1D_v2(preds, domain, ub, lb, Exact_u=None, u_transpose=F
                 ax.plot(x, U_pred[i * len_, :], linestyle=linestyle, marker=marker, linewidth=2, label=legend_j,
                         zorder=zorder, color=color)
 
-            if Exact_u is not None:
+            if Exact_u is not None and legend_j.lower() == 'self_adaptive':
                 # u_star = Exact_u.T.flatten()[:, None]
                 # error_u = find_L2_error(u_pred, exact_u[:, i * len_])
                 error_u = find_L2_error(U_pred[i * len_, :], exact_u[:, i * len_])
-
-                if legend_j.lower()[0:3] == 'sel':
-                    l2_title = 'sa'
-                else:
-                    l2_title = legend_j.lower()
-                textstr = textstr + f'{l2_title}: {error_u:.2e}\n'
-
-        if textstr is not None:
-            ax.text(0.95, 0.95, textstr, transform=ax.transAxes, fontsize=8,
-                    verticalalignment='top', horizontalalignment='right',
-                    bbox=dict(boxstyle='round', facecolor='wheat', alpha=0.5))
+                textstr = 'L2 Error= {0:.2e}'.format(error_u)
+                ax.text(0.95, 0.95, textstr, transform=ax.transAxes, fontsize=8,
+                        verticalalignment='top', horizontalalignment='right',
+                        bbox=dict(boxstyle='round', facecolor='wheat', alpha=0.5))
+                print('Error u: %e' % (error_u))
 
         ax.set_title('t = %.2f' % (t[i * len_]), fontsize=10)
         ax.set_xlabel('x')
@@ -165,19 +160,12 @@ def plot_solution_domain1D_v2(preds, domain, ub, lb, Exact_u=None, u_transpose=F
         # ax.axis('square')
         ax.set_xlim([-lb[0] - .1, ub[0] + .1])
         ax.set_ylim([-lb[1] - .1, ub[1] + .1])
-
-    ## L2 error total
-    error_total = ''
-    for j, u_pred in enumerate(u_preds.T):
-        error_u = find_L2_error(u_pred, Exact_u)
-        error_total = error_total + f'\nL2: {Legends[j].lower()} : {error_u:.3e}'
-
-
     ax.legend(fontsize=8, loc='best', framealpha=0.5)
-    fig.suptitle(Title + error_total)
+    fig.suptitle(Title)
     plt.tight_layout()
     plt.savefig(fr'../figs/{Title}.png')
     plt.show()
+    a=0
 
 
 def plot_losses(losses_main, title=None, divider=None, xlim=None, ylim=None):
