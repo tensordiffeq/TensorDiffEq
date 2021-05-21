@@ -97,7 +97,6 @@ def train_op_inner(obj):
         for _ in range(n_batches):
             # unstack = tf.unstack(obj.u_model.trainable_variables, axis = 2)
             obj.variables = obj.u_model.trainable_variables
-            obj.variables = obj.u_model.trainable_variables
             if obj.isAdaptive:
                 obj.variables.extend(obj.lambdas)
                 loss_value, grads = obj.grad()

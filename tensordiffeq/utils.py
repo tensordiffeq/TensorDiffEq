@@ -35,9 +35,12 @@ def get_sizes(layer_sizes):
     return sizes_w, sizes_b
 
 
-def MSE(pred, actual, weights=None):
+def MSE(pred, actual, weights=None, outside_sum=False):
     if weights is not None:
-        return tf.reduce_mean(tf.square(weights * tf.math.subtract(pred, actual)))
+        if outside_sum:
+            return weights * tf.reduce_mean(tf.square(tf.math.subtract(pred, actual)))
+        else:
+            return tf.reduce_mean(tf.square(weights * tf.math.subtract(pred, actual)))
     return tf.reduce_mean(tf.square(tf.math.subtract(pred, actual)))
 
 
@@ -96,15 +99,15 @@ def flatten_and_stack(mesh):
     return output.T  # returns in an [nxm] matrix
 
 
-def initialize_weigths_loss(init_weigths):
+def initialize_weights_loss(init_weights, adaptive_map):
     lambdas = []
     lambdas_map = {}
     counter = 0
 
-    for i, (key, values) in enumerate(init_weigths.items()):
+    for i, (key, values) in enumerate(init_weights.items()):
         list = []
-        for value in values:
-            if value is not None:
+        for j, value in enumerate(values):
+            if value is not None and adaptive_map[key][j] is not False:
                 lambdas.append(tf.Variable(value, trainable=True, dtype=tf.float32))
                 list.append(counter)
                 counter += 1

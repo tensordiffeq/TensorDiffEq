@@ -4,3 +4,6 @@ venv/*
 .idea/*
 dist/*
 examples/*.ipynb
+*.pickle
+*.xls*
+*.png
