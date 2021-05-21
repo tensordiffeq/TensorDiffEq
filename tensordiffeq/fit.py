@@ -48,6 +48,11 @@ def fit(obj, tf_iter=0, newton_iter=0, batch_sz=None, newton_eager=True):
             if epoch % 10 == 0:
                 t.set_postfix(loss=loss_value.numpy())
 
+            if loss_value < obj.min_loss['adam']:
+                # Keep the information of the best model trained (lower loss function value)
+                obj.best_model['adam'] = obj.u_model  # best model
+                obj.min_loss['adam'] = loss_value  # loss value
+                obj.best_epoch['adam'] = epoch  # best epoch
 
     # tf.profiler.experimental.stop()
 
@@ -57,9 +62,23 @@ def fit(obj, tf_iter=0, newton_iter=0, batch_sz=None, newton_eager=True):
         if newton_eager:
             print("Executing eager-mode L-BFGS")
             loss_and_flat_grad = obj.get_loss_and_flat_grad()
-            eager_lbfgs(loss_and_flat_grad,
-                        get_weights(obj.u_model),
-                        Struct(), maxIter=newton_iter, learningRate=0.8)
+            _, _, _, best_w, min_loss, best_epoch = eager_lbfgs(loss_and_flat_grad,
+                                                                get_weights(obj.u_model),
+                                                                Struct(), maxIter=newton_iter, learningRate=0.8)
+
+            # saving best Model
+            best_model = obj.u_model
+            set_weights(best_model, best_w, obj.sizes_w, obj.sizes_b)
+            obj.best_model['l-bfgs'] = best_model  # best model
+            obj.min_loss['l-bfgs'] = min_loss  # loss value
+            obj.best_epoch['l-bfgs'] = best_epoch  # best epoch
+
+            # saving best Model
+            best_model = obj.u_model
+            set_weights(best_model, best_w, obj.sizes_w, obj.sizes_b)
+            obj.best_model['l-bfgs'] = best_model  # best model
+            obj.min_loss['l-bfgs'] = min_loss  # loss value
+            obj.best_epoch['l-bfgs'] = best_epoch  # best epoch
 
         else:
             print("Executing graph-mode L-BFGS\n Building graph...")
@@ -72,7 +91,19 @@ def fit(obj, tf_iter=0, newton_iter=0, batch_sz=None, newton_eager=True):
     # tf.profiler.experimental.stop()
 
 
-# @tf.function
+    # Saving the best overall method
+    if obj.min_loss['adam'] <= obj.min_loss['l-bfgs']:
+        obj.min_loss['overall'] = obj.min_loss['adam']
+        obj.best_epoch['overall'] = obj.best_epoch['adam']
+        obj.best_model['overall'] = obj.best_model['adam']
+    else:
+        obj.min_loss['overall'] = obj.min_loss['l-bfgs']
+        obj.best_epoch['overall'] = obj.best_epoch['l-bfgs'] + tf_iter
+        obj.best_model['overall'] = obj.best_model['l-bfgs']
+
+    # @tf.function
+
+
 def lbfgs_train(obj, newton_iter):
     func = graph_lbfgs(obj.u_model, obj.update_loss)
 

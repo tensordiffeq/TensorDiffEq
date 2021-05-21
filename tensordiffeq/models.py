@@ -14,6 +14,15 @@ class CollocationSolverND:
         self.assimilate = assimilate
         self.verbose = verbose
         self.losses = []
+        self.best_epoch = {'adam': -1,
+                           'l-bfgs': -1,
+                           'overall': -1}
+        self.min_loss = {'adam': np.inf,
+                         'l-bfgs': np.inf,
+                         'overall': np.inf}
+        self.best_model = {'adam': None,
+                           'l-bfgs': None,
+                           'overall': None}
 
     def compile(self, layer_sizes, f_model, domain, bcs, Adaptive_type=0,
                 dict_adaptive=None, init_weights=None, g=None, dist=False):
@@ -95,8 +104,6 @@ class CollocationSolverND:
             self.dict_adaptive = dict_adaptive
             self.lambdas, self.lambdas_map = initialize_weights_loss(init_weights, dict_adaptive)
 
-
-
     def compile_data(self, x, t, y):
         if not self.assimilate:
             raise Exception(
@@ -150,7 +157,7 @@ class CollocationSolverND:
             # BC types are added
             elif bc.isNeumann:
                 if isBC_adaptive:
-                    #TODO: include Adapative Neumann Boundaries Conditions
+                    # TODO: include Adapative Neumann Boundaries Conditions
                     raise Exception('TensorDiffEq is currently not accepting Adapative Neumann Boundaries Conditions')
                 else:
                     for i, dim in enumerate(bc.var):
@@ -287,16 +294,22 @@ class CollocationSolverND:
 
         return loss_and_flat_grad
 
-    def predict(self, X_star):
+    def predict(self, X_star, best_model=False):
+
+        if best_model:
+            u_model = self.best_model['overall']
+        else:
+            u_model = self.u_model
+
         # predict using concatenated data
-        u_star = self.u_model(X_star)
+        u_star = u_model(X_star)
         # split data into tuples for ND support
         # must explicitly cast data into tf.float32 for stability
         # tmp = [tf.cast(np.reshape(vec, (-1, 1)), tf.float32) for i, vec in enumerate(X_star.T)]
         # X_star = np.asarray(tmp)
         # X_star = tuple(X_star)
         X_star = [tf.cast(np.reshape(vec, (-1, 1)), tf.float32) for i, vec in enumerate(X_star.T)]
-        f_u_star = self.f_model(self.u_model, *X_star)
+        f_u_star = self.f_model(u_model, *X_star)
         return u_star.numpy(), f_u_star.numpy()
 
     def save(self, path):

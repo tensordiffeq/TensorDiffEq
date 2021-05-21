@@ -138,6 +138,9 @@ def eager_lbfgs(opfunc, x, state, maxIter=100, learningRate=1, do_verbose=True):
         verbose("optimality condition below tolFun")
         return x, f_hist
 
+    min_loss = numpy.inf
+    best_epoch = -1
+
     # optimize for a max of maxIter iterations
     nIter = 0
     times = []
@@ -283,6 +286,16 @@ def eager_lbfgs(opfunc, x, state, maxIter=100, learningRate=1, do_verbose=True):
             if nIter == maxIter - 1:
                 final_loss = f.numpy()
 
+            # check if values have NAN
+            if tf.math.is_nan(f):
+                break
+            elif f < min_loss:
+                # Keep the information of the best model trained (lower loss function value)
+                best_w = x  # best model : x is actually the weights
+                min_loss = f  # loss value
+                best_epoch = epoch  # best epoch
+
+
     # save state
     state.old_dirs = old_dirs
     state.old_stps = old_stps
@@ -292,7 +305,7 @@ def eager_lbfgs(opfunc, x, state, maxIter=100, learningRate=1, do_verbose=True):
     state.t = t
     state.d = d
 
-    return x, f_hist, currentFuncEval
+    return x, f_hist, currentFuncEval, best_w, min_loss, best_epoch
 
 
 # dummy/Struct gives Lua-like struct object with 0 defaults
