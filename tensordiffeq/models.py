@@ -15,7 +15,7 @@ class CollocationSolverND:
         self.verbose = verbose
 
     def compile(self, layer_sizes, f_model, domain, bcs, isAdaptive=False,
-                dict_adaptive=None, init_weigths=None, g=None, dist=False):
+                dict_adaptive=None, init_weights=None, g=None, dist=False):
         """
         Args:
             layer_sizes: A list of layer sizes, can be overwritten via resetting u_model to a keras model
@@ -24,7 +24,7 @@ class CollocationSolverND:
             bcs: a list of ICs/BCs for the problem
             isAdaptive: Boolean value determining whether to implement self-adaptive solving
             dict_adaptive: a dictionary with boollean indicating adaptive loss for every loss function
-            init_weigths: a dictionary with keys "residual" and "BCs". Values must be a tuple with dimension
+            init_weights: a dictionary with keys "residual" and "BCs". Values must be a tuple with dimension
                           equal to the number of  residuals and boundares conditions, respectively
             g: a function in terms of `lambda` for self-adapting solving. Defaults to lambda^2
             dist: A boolean value determining whether the solving will be distributed across multiple GPUs
@@ -53,9 +53,9 @@ class CollocationSolverND:
 
         if self.isAdaptive:
             self.dict_adaptive = dict_adaptive
-            self.lambdas, self.lambdas_map = initialize_weigths_loss(init_weigths)
+            self.lambdas, self.lambdas_map = initialize_weights_loss(init_weights)
 
-            if dict_adaptive is None and init_weigths is None:
+            if dict_adaptive is None and init_weights is None:
                 raise Exception("Adaptive weights selected but no inputs were specified!")
         if (
                 self.isAdaptive is False
