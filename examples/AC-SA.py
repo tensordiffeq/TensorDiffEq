@@ -60,7 +60,7 @@ layer_sizes = [2, 128, 128, 128, 128, 1]
 
 model = CollocationSolverND()
 model.compile(layer_sizes, f_model, Domain, BCs, isAdaptive=True,
-              dict_adaptive=dict_adaptive, init_weigths=init_weigths)
+              dict_adaptive=dict_adaptive, init_weights=init_weights)
 model.fit(tf_iter=10, newton_iter=10)
 # model.fit(tf_iter=10000, newton_iter=10000)
 
