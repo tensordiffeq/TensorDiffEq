@@ -52,7 +52,7 @@ dict_adaptive = {"residual": [True],
 ## Weights initialization
 # dictionary with keys "residual" and "BCs". Values must be a tuple with dimension
 # equal to the number of  residuals and boundares conditions, respectively
-init_weigths = {"residual": [tf.random.uniform([N_f, 1])],
+init_weights = {"residual": [tf.random.uniform([N_f, 1])],
                 "BCs": [100 * tf.random.uniform([512, 1]), None]}
 
 
