@@ -126,7 +126,9 @@ def plot_solution_domain1D(model, domain, ub, lb, Exact_u=None, u_transpose=Fals
 
 
 def plot_weights(model, scale = 1):
-    plt.scatter(model.t_f, model.x_f, c = model.col_weights.numpy(), s = model.col_weights.numpy()/float(scale))
+    plt.scatter(model.domain.X_f[:,1], model.domain.X_f[:,0], c = model.lambdas[0].numpy(), s = model.lambdas[0].numpy()/float(scale))
+    plt.xlabel(model.domain.domain_ids[1])
+    plt.ylabel(model.domain.domain_ids[0])
     plt.show()
 
 def plot_glam_values(model, scale = 1):
