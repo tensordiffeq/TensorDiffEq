@@ -48,6 +48,8 @@ class CollocationSolverND:
         # self.X_f_in = np.asarray(tmp)
         self.X_f_in = [tf.cast(np.reshape(vec, (-1, 1)), tf.float32) for i, vec in enumerate(self.domain.X_f.T)]
         self.u_model = neural_net(self.layer_sizes)
+        self.batch = None
+        self.batch_indx_map = None
         self.lambdas = self.dict_adaptive = self.lambdas_map = None
         self.isAdaptive = isAdaptive
 
@@ -142,7 +144,16 @@ class CollocationSolverND:
         # Residual Equations
         #####################################
         # pass thorough the forward method
-        f_u_preds = self.f_model(self.u_model, *self.X_f_in)
+        if self.n_batches > 1:
+            # The collocation points will be split based on the batch_indx_map
+            # generated on the begining of this epoch on models.train_op_inner.apply_grads
+            X_batch = []
+            for x_in in self.X_f_in:
+                indx_on_batch = self.batch_indx_map[self.batch * self.batch_sz:(self.batch + 1) * self.batch_sz]
+                X_batch.append(tf.gather(x_in,indx_on_batch))
+            f_u_preds = self.f_model(self.u_model, *X_batch)
+        else:
+            f_u_preds = self.f_model(self.u_model, *self.X_f_in)
 
         # If it is only one residual, just convert it to a tuple of one element
         if not isinstance(f_u_preds, tuple):
@@ -153,13 +164,17 @@ class CollocationSolverND:
             # Check if the current Residual is adaptive
             if self.isAdaptive:
                 isRes_adaptive = self.dict_adaptive["residual"][counter_res]
-                idx_lambda_res = self.lambdas_map['residual'][0]
                 if isRes_adaptive:
+                    idx_lambda_res = self.lambdas_map['residual'][0]
                     if self.g is not None:
                         loss_r = g_MSE(f_u_pred, constant(0.0), self.g(self.lambdas[idx_lambda_res]))
                     else:
                         loss_r = MSE(f_u_pred, constant(0.0), self.lambdas[idx_lambda_res])
                     idx_lambda_res += 1
+                else:
+                    # In the case where the model is Adaptive but the residual
+                    # is not adaptive, the residual loss should be computed.
+                    loss_r = MSE(f_u_pred, constant(0.0))
             else:
                 loss_r = MSE(f_u_pred, constant(0.0))
 
@@ -177,8 +192,14 @@ class CollocationSolverND:
         return loss_value, grads
 
     def fit(self, tf_iter=0, newton_iter=0, batch_sz=None, newton_eager=True):
-        if self.isAdaptive and (batch_sz is not None):
-            raise Exception("Currently we dont support minibatching for adaptive PINNs")
+        # if self.isAdaptive and (batch_sz is not None):
+        #     raise Exception("Currently we dont support minibatching for adaptive PINNs")
+
+        # Can adjust batch size for collocation points, here we set it to N_f
+        N_f = self.X_f_len[0]
+        self.batch_sz = batch_sz if batch_sz is not None else N_f
+        self.n_batches = N_f // self.batch_sz
+
         if self.dist:
             BUFFER_SIZE = len(self.X_f_in[0])
             EPOCHS = tf_iter
@@ -193,13 +214,6 @@ class CollocationSolverND:
                     "version of Tensorflow")
 
             print("Number of GPU devices: {}".format(self.strategy.num_replicas_in_sync))
-
-            self.batch_sz = batch_sz if batch_sz is not None else len(self.X_f_in[0])
-            # weights_idx = tensor(list(range(len(self.x_f))), dtype=tf.int32)
-            # print(weights_idx)
-            # print(tf.gather(self.col_weights, weights_idx))
-            N_f = len(self.X_f_in[0])
-            self.n_batches = N_f // self.batch_sz
 
             BATCH_SIZE_PER_REPLICA = self.batch_sz
             GLOBAL_BATCH_SIZE = BATCH_SIZE_PER_REPLICA * self.strategy.num_replicas_in_sync
@@ -229,7 +243,7 @@ class CollocationSolverND:
             fit_dist(self, tf_iter=tf_iter, newton_iter=newton_iter, batch_sz=batch_sz, newton_eager=newton_eager)
 
         else:
-            fit(self, tf_iter=tf_iter, newton_iter=newton_iter, batch_sz=batch_sz, newton_eager=newton_eager)
+            fit(self, tf_iter=tf_iter, newton_iter=newton_iter, newton_eager=newton_eager)
 
     # L-BFGS implementation from https://github.com/pierremtb/PINNs-TF2.0
     def get_loss_and_flat_grad(self):

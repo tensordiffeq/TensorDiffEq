@@ -14,33 +14,21 @@ import sys
 os.environ["TF_GPU_THREAD_MODE"] = "gpu_private"
 
 
-def fit(obj, tf_iter=0, newton_iter=0, batch_sz=None, newton_eager=True):
-    # obj.u_model = neural_net(obj.layer_sizes)
-    # obj.build_loss()
-    # Can adjust batch size for collocation points, here we set it to N_f
-    if batch_sz is not None:
-        obj.batch_sz = batch_sz
-    else:
-        obj.batch_sz = obj.X_f_len
-        # obj.batch_sz = len(obj.x_f)
+def fit(obj, tf_iter=0, newton_iter=0, newton_eager=True):
 
-    N_f = obj.X_f_len
-    # N_f = len(obj.x_f)
-    n_batches = int(N_f // obj.batch_sz)
     start_time = time.time()
-    # obj.tf_optimizer = tf.keras.optimizers.Adam(lr=0.005, beta_1=.99)
-    # obj.tf_optimizer_weights = tf.keras.optimizers.Adam(lr=0.005, beta_1=.99)
 
     # these cant be tf.functions on initialization since the distributed strategy requires its own
     # graph using grad and adaptgrad, so they cant be compiled as tf.functions until we know dist/non-dist
     obj.grad = tf.function(obj.grad)
     if obj.verbose: print_screen(obj)
+
     print("Starting Adam training")
     # tf.profiler.experimental.start('../cache/tblogdir1')
     train_op_fn = train_op_inner(obj)
     with trange(tf_iter) as t:
         for epoch in t:
-            loss_value = train_op_fn(n_batches, obj)
+            loss_value = train_op_fn(obj)
             # Description will be displayed on the left
             t.set_description('Adam epoch %i' % (epoch + 1))
             # Postfix will be displayed on the right,
@@ -93,9 +81,13 @@ def lbfgs_op(func, init_params, newton_iter):
 
 def train_op_inner(obj):
     @tf.function()
-    def apply_grads(n_batches, obj=obj):
-        for _ in range(n_batches):
+    def apply_grads(obj=obj):
+        if obj.n_batches > 1:
+            obj.batch_indx_map = np.random.choice(obj.X_f_len[0], size=obj.X_f_len[0], replace=False)
+
+        for i in range(obj.n_batches):
             # unstack = tf.unstack(obj.u_model.trainable_variables, axis = 2)
+            obj.batch = i
             obj.variables = obj.u_model.trainable_variables
             obj.variables = obj.u_model.trainable_variables
             if obj.isAdaptive:
@@ -112,7 +104,10 @@ def train_op_inner(obj):
             else:
                 loss_value, grads = obj.grad()
                 obj.tf_optimizer.apply_gradients(zip(grads, obj.u_model.trainable_variables))
-            return loss_value
+
+        obj.batch = None
+
+        return loss_value
 
     return apply_grads
 
