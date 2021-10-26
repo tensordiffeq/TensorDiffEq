@@ -146,7 +146,7 @@ class CollocationSolverND:
         # pass thorough the forward method
         if self.n_batches > 1:
             # The collocation points will be split based on the batch_indx_map
-            # generated on the begining of this epoch on models.train_op_inner.apply_grads
+            # generated on the beginning of this epoch on models.train_op_inner.apply_grads
             X_batch = []
             for x_in in self.X_f_in:
                 indx_on_batch = self.batch_indx_map[self.batch * self.batch_sz:(self.batch + 1) * self.batch_sz]
@@ -192,8 +192,8 @@ class CollocationSolverND:
         return loss_value, grads
 
     def fit(self, tf_iter=0, newton_iter=0, batch_sz=None, newton_eager=True):
-        # if self.isAdaptive and (batch_sz is not None):
-        #     raise Exception("Currently we dont support minibatching for adaptive PINNs")
+        if self.isAdaptive and (batch_sz is not None) and self.dist:
+            raise Exception("Currently we dont support distributed minibatching for adaptive PINNs")
 
         # Can adjust batch size for collocation points, here we set it to N_f
         N_f = self.X_f_len[0]
