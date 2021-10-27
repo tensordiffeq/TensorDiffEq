@@ -1,6 +1,7 @@
+import pytest
 from AC2test import *
 
-class TestDistribuited():
+class TestACDistribuited():
     def init_args(self):
         self.args = {'layer_sizes': [2, 21, 21, 21, 21, 1],
                     'run_functions_eagerly': False,

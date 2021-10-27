@@ -1,4 +1,5 @@
 README.md
+pyproject.toml
 setup.py
 tensordiffeq/__init__.py
 tensordiffeq/boundaries.py
@@ -8,6 +9,7 @@ tensordiffeq/helpers.py
 tensordiffeq/models.py
 tensordiffeq/networks.py
 tensordiffeq/optimizers.py
+tensordiffeq/output.py
 tensordiffeq/plotting.py
 tensordiffeq/sampling.py
 tensordiffeq/utils.py
@@ -16,3 +18,11 @@ tensordiffeq.egg-info/SOURCES.txt
 tensordiffeq.egg-info/dependency_links.txt
 tensordiffeq.egg-info/requires.txt
 tensordiffeq.egg-info/top_level.txt
+test/test_AC_distributed.py
+test/test_AC_distributed_minibatch.py
+test/test_AC_nonDistributed.py
+test/test_AC_nonDistributed_minibatch.py
+test/test_Burgers_distributed.py
+test/test_Burgers_distributed_minibatch.py
+test/test_Burgers_nonDistributed.py
+test/test_Burgers_nonDistributed_minibatch.py
