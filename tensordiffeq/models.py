@@ -85,11 +85,12 @@ class CollocationSolverND:
         #####################################
         # Check if adaptive is allowed
         if self.isAdaptive:
-            idx_lambda_bcs = self.lambdas_map['bcs'][0]
+            if len(self.lambdas_map['bcs']) > 0:
+                idx_lambda_bcs = self.lambdas_map['bcs'][0]
 
         for counter_bc, bc in enumerate(self.bcs):
             loss_bc = 0.
-            # Check if the current BS is adaptive
+            # Check if the current BC is adaptive
             if self.isAdaptive:
                 isBC_adaptive = self.dict_adaptive["BCs"][counter_bc]
             else:
@@ -166,10 +167,16 @@ class CollocationSolverND:
                 isRes_adaptive = self.dict_adaptive["residual"][counter_res]
                 if isRes_adaptive:
                     idx_lambda_res = self.lambdas_map['residual'][0]
+                    lambdas2loss = self.lambdas[idx_lambda_res]
+
+                    if self.n_batches > 1:
+                        # select lambdas on minebatch
+                        lambdas2loss = tf.gather(lambdas2loss,indx_on_batch)
+
                     if self.g is not None:
-                        loss_r = g_MSE(f_u_pred, constant(0.0), self.g(self.lambdas[idx_lambda_res]))
+                        loss_r = g_MSE(f_u_pred, constant(0.0), self.g(lambdas2loss))
                     else:
-                        loss_r = MSE(f_u_pred, constant(0.0), self.lambdas[idx_lambda_res])
+                        loss_r = MSE(f_u_pred, constant(0.0), lambdas2loss)
                     idx_lambda_res += 1
                 else:
                     # In the case where the model is Adaptive but the residual
@@ -192,13 +199,17 @@ class CollocationSolverND:
         return loss_value, grads
 
     def fit(self, tf_iter=0, newton_iter=0, batch_sz=None, newton_eager=True):
-        if self.isAdaptive and (batch_sz is not None) and self.dist:
-            raise Exception("Currently we dont support distributed minibatching for adaptive PINNs")
 
         # Can adjust batch size for collocation points, here we set it to N_f
         N_f = self.X_f_len[0]
         self.batch_sz = batch_sz if batch_sz is not None else N_f
         self.n_batches = N_f // self.batch_sz
+
+        if self.isAdaptive and self.dist:
+            raise Exception("Currently we dont support distributed training for adaptive PINNs")
+
+        if self.n_batches > 1 and self.dist:
+            raise Exception("Currently we dont support distributed minibatching training")
 
         if self.dist:
             BUFFER_SIZE = len(self.X_f_in[0])

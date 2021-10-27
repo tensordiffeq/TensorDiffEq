@@ -41,6 +41,7 @@ def fit(obj, tf_iter=0, newton_iter=0, newton_eager=True):
 
     # tf.profiler.experimental.start('../cache/tblogdir1')
     if newton_iter > 0:
+        obj.n_batches = 1
         print("Starting L-BFGS training")
         if newton_eager:
             print("Executing eager-mode L-BFGS")
@@ -80,7 +81,7 @@ def lbfgs_op(func, init_params, newton_iter):
 
 
 def train_op_inner(obj):
-    @tf.function()
+    @tf.function
     def apply_grads(obj=obj):
         if obj.n_batches > 1:
             obj.batch_indx_map = np.random.choice(obj.X_f_len[0], size=obj.X_f_len[0], replace=False)
