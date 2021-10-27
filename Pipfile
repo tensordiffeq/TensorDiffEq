@@ -16,6 +16,7 @@ requests = "*"
 
 [dev-packages]
 tensordiffeq = {editable = true, path = "."}
+pytest = "*"
 
 [requires]
 python_version = "3.8"
