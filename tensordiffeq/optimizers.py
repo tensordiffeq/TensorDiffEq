@@ -7,6 +7,113 @@ from matplotlib import pyplot
 from tqdm.auto import tqdm, trange
 import time
 
+def graph_lbfgs2(obj):
+    """A factory to create a function required by tfp.optimizer.lbfgs_minimize.
+    Args:
+        model [in]: an instance of `tf.keras.Model` or its subclasses.
+        loss [in]: a function with signature loss_value = loss(pred_y, true_y).
+    Returns:
+        A function that has a signature of:
+            loss_value, gradients = f(model_parameters).
+    """
+    model = obj.u_model
+    loss = obj.update_loss
+    variables, dict_variables = obj.get_trainable_variables()
+    obj.variables = variables
+    # obtain the shapes of all trainable parameters in the model
+    shapes = tf.shape_n(variables)
+    n_tensors = len(shapes)
+
+    # we'll use tf.dynamic_stitch and tf.dynamic_partition later, so we need to
+    # prepare required information first
+    count = 0
+    idx = []  # stitch indices
+    part = []  # partition indices
+    start_time = time.time()
+
+    for i, shape in enumerate(shapes):
+        n = numpy.product(shape)
+        idx.append(tf.reshape(tf.range(count, count + n, dtype=tf.int32), shape))
+        part.extend([i] * n)
+        count += n
+
+    part = tf.constant(part)
+
+    @tf.function
+    def assign_new_model_parameters(params_1d):
+        """A function updating the model's parameters with a 1D tf.Tensor.
+        Args:
+            params_1d [in]: a 1D tf.Tensor representing the model's trainable parameters.
+        """
+
+        params = tf.dynamic_partition(params_1d, part, n_tensors)
+        for i, (shape, param) in enumerate(zip(shapes, params)):
+            #model.trainable_variables[i].assign(tf.reshape(param, shape))
+            obj.variables[i].assign(tf.reshape(param, shape))
+
+        if obj.diffAdaptive_type > 0:
+            obj.diff_list.append(obj.variables[dict_variables['nn_weights']:dict_variables['diffusion']][0].numpy())
+
+    # now create a function that will be returned by this factory
+    @tf.function
+    def f(params_1d):
+        """A function that can be used by tfp.optimizer.lbfgs_minimize.
+        This function is created by function_factory.
+        Args:
+           params_1d [in]: a 1D tf.Tensor.
+        Returns:
+            A scalar loss and the gradients w.r.t. the `params_1d`.
+        """
+        # use GradientTape so that we can calculate the gradient of loss w.r.t. parameters
+        with tf.GradientTape() as tape:
+            # update the parameters in the model
+            assign_new_model_parameters(params_1d)
+            # calculate the loss
+            loss_value = loss()
+
+        # calculate gradients and convert to 1D tf.Tensor
+        grads = tape.gradient(loss_value, obj.variables)
+
+        # Extracting the correct gradient for each set of variables
+        if obj.isAdaptive:
+            grads_lambdas = grads[dict_variables['nn_weights']:dict_variables['lambdas']]
+            grads_lambdas_neg = [-x for x in grads_lambdas]
+            grads[dict_variables['nn_weights']:dict_variables['lambdas']] = grads_lambdas_neg
+
+        grads = tf.dynamic_stitch(idx, grads)
+
+        # print out iteration & loss
+        f.iter.assign_add(1)
+
+        if f.iter % 30 == 0:
+            elapsed = tf.timestamp() - f.start_time
+
+            tf.print(f'LBFGS iter {f.iter // 3} ->   loss:{loss_value:.2e}   time: {elapsed:.2f} seconds')
+            f.start_time.assign(tf.timestamp())
+
+        # store loss value so we can retrieve later
+        tf.py_function(f.history.append, inp=[loss_value], Tout=[])
+
+        if loss_value < obj.min_loss['l-bfgs']:
+            # Keep the information of the best model trained (lower loss function value)
+            obj.best_model['l-bfgs'] = obj.u_model       # best model
+            obj.min_loss['l-bfgs'] = loss_value.numpy()  # loss value
+            obj.best_epoch['l-bfgs'] = f.iter.numpy()    # best epoch
+            obj.best_diff['l-bfgs'] = obj.diffusion[0].numpy()
+
+        return loss_value, grads
+
+    # store these information as members so we can use them outside the scope
+    f.iter = tf.Variable(0)
+    f.idx = idx
+    f.part = part
+    f.shapes = shapes
+    f.assign_new_model_parameters = assign_new_model_parameters
+    f.history = []
+    f.start_time = tf.Variable(tf.timestamp())
+
+    return f
+
 
 def graph_lbfgs(model, loss):
     """A factory to create a function required by tfp.optimizer.lbfgs_minimize.

@@ -1,23 +1,24 @@
-import pytest
-from tensordiffeq.boundaries import *
-import scipy.io
-import math
+
+
 import tensordiffeq as tdq
+from tensordiffeq.boundaries import *
 from tensordiffeq.models import CollocationSolverND
+import math
+import pytest
 
 def main(args):
 
     if args is None:
         args = {'layer_sizes': [2, 21, 21, 21, 21, 1],
 
-                'run_functions_eagerly': False,
+                'run_functions_eagerly': True,
                 'epoch_adam': 20,
                 'epoch_lbfgs': 20,
                 'lbfgs_eager': False,
                 'isAdaptive': True,
                 'dist_training': False,
                 'dict_adaptive': {"residual": [True],
-                                  "BCs": [False, False]},
+                                  "BCs": [True, False, False]},
                 'N_x': 100,
                 'N_t': 50,
                 'N_f': 5000,
@@ -41,39 +42,31 @@ def main(args):
     tf.config.run_functions_eagerly(run_functions_eagerly)
 
     Domain = DomainND(["x", "t"], time_var='t')
-
     Domain.add("x", [-1.0, 1.0], N_x)
     Domain.add("t", [0.0, 1.0], N_t)
-
     Domain.generate_collocation_points(N_f)
 
-
     def func_ic(x):
-        return x ** 2 * np.cos(math.pi * x)
-
-
-    # Conditions to be considered at the boundaries for the periodic BC
-    def deriv_model(u_model, x, t):
-        u = u_model(tf.concat([x, t], 1))
-        u_x = tf.gradients(u, x)[0]
-
-        return u, u_x
-
+        return -np.sin(x * math.pi)
 
     init = IC(Domain, [func_ic], var=[['x']])
-    x_periodic = periodicBC(Domain, ['x'], [deriv_model])
+    upper_x = dirichletBC(Domain, val=0.0, var='x', target="upper")
+    lower_x = dirichletBC(Domain, val=0.0, var='x', target="lower")
 
-    BCs = [init, x_periodic]
-
+    BCs = [init, upper_x, lower_x]
 
     def f_model(u_model, x, t):
-        u = u_model(tf.concat([x, t], 1))
-        u_x = tf.gradients(u, x)
-        u_xx = tf.gradients(u_x, x)
-        u_t = tf.gradients(u, t)
-        c1 = tdq.utils.constant(.0001)
-        c2 = tdq.utils.constant(5.0)
-        f_u = u_t - c1 * u_xx + c2 * u * u * u - c2 * u
+        with tf.GradientTape(persistent=True) as tape:
+            tape.watch(x)
+            tape.watch(t)
+            u = u_model(tf.concat([x, t], 1))
+            u_x = tape.gradient(u, x)
+
+        u_xx = tape.gradient(u_x, x)
+        u_t = tape.gradient(u, t)
+
+        f_u = u_t + u * u_x - 0.01 / tf.constant(math.pi) * u_xx
+
         return f_u
 
     ## Which loss functions will have adaptive weights
@@ -88,28 +81,37 @@ def main(args):
     if dict_adaptive["residual"][0] == False:
         init_residual = None
     else:
-        init_residual = tf.random.uniform([N_f, 1])
+        init_residual = tf.ones([N_f, 1])
 
     if dict_adaptive["BCs"][0] == False:
         init_IC = None
     else:
-        init_IC = 100 * tf.random.uniform([N_x, 1])
+        init_IC = tf.ones([N_x, 1])
 
     if dict_adaptive["BCs"][1] == False:
-        init_BC = None
+        init_BC1 = None
     else:
-        init_BC = tf.random.uniform([N_t, 1])
+        init_BC1 = tf.ones([N_t, 1])
+
+    if dict_adaptive["BCs"][2] == False:
+        init_BC2 = None
+    else:
+        init_BC2 = tf.ones([N_t, 1])
 
     init_weights = {"residual": [init_residual],
-                    "BCs": [init_IC, init_BC]}
-
-
+                    "BCs": [init_IC, init_BC1, init_BC2]}
 
     model = CollocationSolverND()
-    model.compile(layer_sizes, f_model, Domain, BCs, isAdaptive=isAdaptive,
-                  dict_adaptive=dict_adaptive, init_weights=init_weights, dist=dist_training)
+    model.compile(layer_sizes, f_model, Domain, BCs,
+                  isAdaptive=isAdaptive,
+                  dict_adaptive=dict_adaptive,
+                  init_weights=init_weights,
+                  dist=dist_training)
 
-    model.fit(tf_iter=epoch_adam, newton_iter=epoch_lbfgs, newton_eager=lbfgs_eager, batch_sz=batch_sz)
+    model.fit(tf_iter=epoch_adam,
+              newton_iter=epoch_lbfgs,
+              newton_eager=lbfgs_eager,
+              batch_sz=batch_sz)
 
     return
 
