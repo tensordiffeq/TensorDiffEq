@@ -36,7 +36,7 @@ What makes TensorDiffEq different?
 
 *In development
 
-If you use TensorDiffEq in your work, please site it via:
+If you use TensorDiffEq in your work, please cite it via:
 
 ```code
 @article{mcclenny2021tensordiffeq,
@@ -48,4 +48,4 @@ If you use TensorDiffEq in your work, please site it via:
 ```
 
 ### Thanks to our additional contributors: 
-@marcelodallaqua, @ragusa
+@marcelodallaqua, @ragusa, @emiliocoutinho
