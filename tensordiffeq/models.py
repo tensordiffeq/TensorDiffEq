@@ -316,9 +316,9 @@ class DiscoveryModel():
         u_pred = self.u_model(tf.concat(self.X, 1))
         f_u_pred = self.f_model(self.u_model, self.vars, *self.X_in)
         if self.col_weights is not None:
-            return MSE(u_pred, self.u) + g_MSE(f_u_pred, constant(0.0), self.col_weights ** 2)
+            return MSE(u_pred, self.u) + g_MSE(tf.cast(f_u_pred, dtype=tf.float32), constant(0.0), self.col_weights ** 2)
         else:
-            return MSE(u_pred, self.u) + MSE(f_u_pred, constant(0.0))
+            return MSE(u_pred, self.u) + MSE(tf.cast(f_u_pred, dtype=tf.float32), constant(0.0))
 
     @tf.function
     def grad(self):
