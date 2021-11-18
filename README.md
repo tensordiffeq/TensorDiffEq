@@ -8,6 +8,8 @@
 ![downloads](https://img.shields.io/pypi/dm/tensordiffeq)
 ![python versions](https://img.shields.io/pypi/pyversions/tensordiffeq)
 
+### Notice: Support for Python 3.6 will be dropped in v.0.2.1, please plan accordingly!
+
 ## Efficient and Scalable Physics-Informed Deep Learning
 
 #### Collocation-based PINN PDE solvers for prediction and discovery methods on top of [Tensorflow](https://github.com/tensorflow/tensorflow) 2.X for multi-worker distributed computing. 
