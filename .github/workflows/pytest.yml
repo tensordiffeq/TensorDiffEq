@@ -37,6 +37,7 @@ jobs:
           
       - name: Generate coverage report
         run: |
+          python -m pip install tensordiffeq
           pip install pytest
           pip install pytest-cov
           pytest --cov=./ --cov-report=xml
